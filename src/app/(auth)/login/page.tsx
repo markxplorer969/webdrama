@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +44,8 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
+      const auth = getAuth();
+      const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
       await createSession(result.user);
     } catch (error: any) {
@@ -63,6 +65,7 @@ export default function LoginPage() {
 
     try {
       setIsLoading(true);
+      const auth = getAuth();
       const result = await signInWithEmailAndPassword(auth, email, password);
       await createSession(result.user);
     } catch (error: any) {
@@ -98,14 +101,22 @@ export default function LoginPage() {
             Sign in with Google
           </Button>
           
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
-            </div>
-          </div>
+              <Button
+              disabled={isLoading}
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-t-transparent border-slate-600 border-bate-600 animate-spin"></div>
+                  <span className="ml-2">Creating Account...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <User className="mr-2 h-4 />
+                  <span>Create Account</span>
+                </div>
+              )}
+            </Button>
 
           <form onSubmit={handleEmailSignIn} className="space-y-3">
             <div className="space-y-2">

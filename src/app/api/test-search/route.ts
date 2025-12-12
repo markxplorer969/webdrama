@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { searchAction } from '@/app/actions/search';
 
 export async function POST(request: NextRequest) {

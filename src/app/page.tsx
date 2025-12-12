@@ -2,6 +2,7 @@ import { getHomeFeed } from '@/app/actions/home';
 import { DramaItem } from '@/lib/scrapers/dramabox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Play, Eye, Clock, TrendingUp, Hash, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

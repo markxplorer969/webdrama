@@ -1,6 +1,5 @@
 import { dramabox, DramaItem } from '@/lib/scrapers/dramabox';
 import { adminDb } from '@/lib/firebase-admin';
-import { revalidatePath } from 'next/cache';
 
 export async function getSearchResults(query: string): Promise<DramaItem[]> {
   if (!query || query.trim().length < 2) {
@@ -10,10 +9,18 @@ export async function getSearchResults(query: string): Promise<DramaItem[]> {
   try {
     // First try to get cached results from Firestore
     const cacheKey = query.toLowerCase().trim();
-    const cacheRef = adminDb.collection('search_cache').doc(cacheKey);
-    const cacheDoc = await cacheRef.get();
+    let cacheDoc;
+    
+    try {
+      const cacheRef = adminDb.collection('search_cache').doc(cacheKey);
+      cacheDoc = await cacheRef.get();
+    } catch (firestoreError) {
+      console.log('🔥 Firestore not available, using direct scraping');
+      // If Firestore is not available, proceed directly to scraping
+      cacheDoc = { exists: false };
+    }
 
-    if (cacheDoc.exists) {
+    if (cacheDoc && cacheDoc.exists) {
       const data = cacheDoc.data() as { results: DramaItem[], timestamp: any };
       const cacheAge = (Date.now() - data.timestamp.toDate().getTime()) / (1000 * 60 * 60); // hours
       
@@ -27,9 +34,10 @@ export async function getSearchResults(query: string): Promise<DramaItem[]> {
     console.log(`🔄 Scraping fresh search results for "${query}"`);
     const results = await dramabox.search(query.trim());
 
-    // Cache the results for future use
-    if (results.length > 0) {
+    // Cache the results for future use (only if Firebase is available)
+    if (results.length > 0 && cacheDoc !== undefined) {
       try {
+        const cacheRef = adminDb.collection('search_cache').doc(cacheKey);
         await cacheRef.set({
           results,
           timestamp: adminDb.firestore.FieldValue.serverTimestamp()
@@ -40,12 +48,16 @@ export async function getSearchResults(query: string): Promise<DramaItem[]> {
       }
     }
 
-    // Revalidate the search page
-    revalidatePath('/search');
-
     return results;
   } catch (error) {
     console.error('Search service error:', error);
-    return [];
+    // Fallback to direct scraping if all else fails
+    try {
+      console.log(`🔄 Fallback: Scraping fresh search results for "${query}"`);
+      return await dramabox.search(query.trim());
+    } catch (fallbackError) {
+      console.error('Fallback scraping failed:', fallbackError);
+      return [];
+    }
   }
 }

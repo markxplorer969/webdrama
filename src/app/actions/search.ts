@@ -1,7 +1,6 @@
 'use server';
 
 import { dramabox, DramaItem } from '@/lib/scrapers/dramabox';
-import { revalidatePath } from 'next/cache';
 
 export async function searchAction(formData: FormData) {
   const query = formData.get('query') as string;
@@ -16,9 +15,6 @@ export async function searchAction(formData: FormData) {
 
   try {
     const results = await dramabox.search(query.trim());
-    
-    // Revalidate the search page to show fresh data
-    revalidatePath('/search');
     
     return {
       success: true,

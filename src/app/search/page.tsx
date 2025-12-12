@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { getSearchResults } from '@/lib/services/search-service';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Eye, Clock, Play } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -55,11 +56,10 @@ export default async function SearchPage({ searchParams }: Props) {
   );
 }
 
-function SearchResults({ query }: { query: string }) {
+async function SearchResults({ query }: { query: string }) {
   const results = query ? await getSearchResults(query) : [];
 
   if (results.length === 0) {
-/  return (/i
     return (
       <div className="text-center py-16">
         <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
