@@ -16,9 +16,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: 'thwztchapter.dramaboxdb.com',
         port: '',
-        pathname: '/**',
+        pathname: '/data/**',
       },
       {
         protocol: 'https',
@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'thwztchapter.dramaboxdb.com',
+        hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
       },

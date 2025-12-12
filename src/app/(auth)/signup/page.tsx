@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { getAuth } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,20 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Firebase is initialized when the module is imported
+    // Set ready state immediately
+    setIsFirebaseReady(true);
+  }, []);
+
+  useEffect(() => {
+    // Firebase is initialized when module is imported
+    // Set ready state immediately
+    setIsFirebaseReady(true);
+  }, []);
 
   const createSession = async (user: any) => {
     try {
@@ -44,8 +57,40 @@ export default function SignupPage() {
     }
   };
 
+  const createUserProfile = async (user: any) => {
+    try {
+      const response = await fetch('/api/auth/create-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          displayName: user.displayName,
+          uid: user.uid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Profile created with 20 free credits!');
+      } else {
+        toast.error(data.error || 'Failed to create user profile');
+      }
+    } catch (error: any) {
+      console.error('Profile creation error:', error);
+      toast.error(error.message || 'Failed to create user profile');
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isFirebaseReady) {
+      toast.error('Firebase is not ready yet. Please wait...');
+      return;
+    }
     
     if (!email || !password || !confirmPassword) {
       toast.error('Please fill in all fields');
@@ -59,22 +104,23 @@ export default function SignupPage() {
 
     try {
       setIsLoading(true);
-      const auth = getAuth();
       
-      // Create user with email and password
+      // Step A: Create User in Firebase Authentication (client-side)
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      const user = result.user;
       
-      // Update profile with display name
-      if (result.user && displayName) {
-        await updateProfile(result.user, {
-          displayName: displayName
-        });
+      // Update profile with display name if provided
+      if (displayName) {
+        await updateProfile(user, { displayName });
       }
       
-      // Create session
-      await createSession(result.user);
+      // Step B: Create Firestore document (server-side)
+      await createUserProfile(user);
       
-      toast.success('Account created successfully!');
+      // Step C: Create session
+      await createSession(user);
+      
+      toast.success('Account created successfully with 20 free credits!');
       router.push('/');
       
     } catch (error: any) {
@@ -98,6 +144,18 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+
+  if (!isFirebaseReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Authentication...</h2>
+          <p className="text-slate-400">Setting up secure sign-up</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">

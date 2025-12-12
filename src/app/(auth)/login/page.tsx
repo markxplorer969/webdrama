@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { auth, GoogleAuthProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Chrome, Loader2 } from 'lucide-react';
+import { Chrome, Loader2, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -16,7 +16,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Firebase is initialized when the module is imported
+    // Set ready state immediately
+    setIsFirebaseReady(true);
+  }, []);
 
   const createSession = async (user: any) => {
     try {
@@ -42,9 +49,13 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isFirebaseReady) {
+      toast.error('Firebase is not ready yet. Please wait...');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const auth = getAuth();
       const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
       await createSession(result.user);
@@ -58,6 +69,11 @@ export default function LoginPage() {
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseReady) {
+      toast.error('Firebase is not ready yet. Please wait...');
+      return;
+    }
+
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
@@ -65,7 +81,6 @@ export default function LoginPage() {
 
     try {
       setIsLoading(true);
-      const auth = getAuth();
       const result = await signInWithEmailAndPassword(auth, email, password);
       await createSession(result.user);
     } catch (error: any) {
@@ -75,6 +90,18 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (!isFirebaseReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Authentication...</h2>
+          <p className="text-slate-400">Setting up secure sign-in</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
@@ -101,23 +128,8 @@ export default function LoginPage() {
             Sign in with Google
           </Button>
           
-              <Button
-              disabled={isLoading}
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-t-transparent border-slate-600 border-bate-600 animate-spin"></div>
-                  <span className="ml-2">Creating Account...</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <User className="mr-2 h-4 />
-                  <span>Create Account</span>
-                </div>
-              )}
-            </Button>
-
+          <Separator className="bg-slate-700" />
+          
           <form onSubmit={handleEmailSignIn} className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300">Email</Label>
@@ -154,6 +166,15 @@ export default function LoginPage() {
               Sign in
             </Button>
           </form>
+          
+          <div className="text-center">
+            <p className="text-slate-400 text-sm">
+              Don't have an account?{' '}
+              <a href="/signup" className="text-violet-400 hover:text-violet-300">
+                Sign up
+              </a>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
