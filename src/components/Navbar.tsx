@@ -14,7 +14,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { LogIn, LogOut, User, Coins, Crown } from 'lucide-react';
+import { RedeemModal } from '@/components/wallet/RedeemModal';
+import { LogIn, LogOut, User, Wallet, Crown } from 'lucide-react';
+import { formatNumber } from '@/lib/currency';
 
 export const Navbar: React.FC = () => {
   const { user, userData, loading, signOut } = useAuth();
@@ -65,86 +67,103 @@ export const Navbar: React.FC = () => {
                 <span>Sign In</span>
               </Button>
             ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <>
+                {/* Credits Display with RedeemModal */}
+                <RedeemModal>
                   <Button 
-                    variant="ghost" 
-                    className="relative h-9 w-9 rounded-full"
+                    variant="outline" 
+                    className="flex items-center space-x-2 h-9 px-4"
                   >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage 
-                        src={user.photoURL || undefined} 
-                        alt={user.displayName || 'User'} 
-                      />
-                      <AvatarFallback>
-                        {userData?.displayName 
-                          ? getInitials(userData.displayName)
-                          : user.email?.[0]?.toUpperCase()
-                        }
-                      </AvatarFallback>
-                    </Avatar>
+                    <Wallet className="h-4 w-4" />
+                    <span className="font-medium">
+                      {formatNumber(userData?.credits || 0)} Credits
+                    </span>
+                    <span className="text-xs text-muted-foreground">+</span>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {userData?.displayName || user.displayName || 'User'}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  {/* User Info Items */}
-                  <DropdownMenuItem className="flex items-center justify-between" disabled>
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4" />
-                      <span>Role</span>
-                    </div>
-                    <span className="text-sm font-medium capitalize">
-                      {userData?.role || 'user'}
-                    </span>
-                  </DropdownMenuItem>
-                  
-                  <DropdownMenuItem className="flex items-center justify-between" disabled>
-                    <div className="flex items-center space-x-2">
-                      <Coins className="h-4 w-4" />
-                      <span>Credits</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {userData?.credits || 0}
-                    </span>
-                  </DropdownMenuItem>
-                  
-                  {userData?.isVip && (
+                </RedeemModal>
+
+                {/* User Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="relative h-9 w-9 rounded-full"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage 
+                          src={user.photoURL || undefined} 
+                          alt={user.displayName || 'User'} 
+                        />
+                        <AvatarFallback>
+                          {userData?.displayName 
+                            ? getInitials(userData.displayName)
+                            : user.email?.[0]?.toUpperCase()
+                          }
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {userData?.displayName || user.displayName || 'User'}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    
+                    {/* User Info Items */}
                     <DropdownMenuItem className="flex items-center justify-between" disabled>
                       <div className="flex items-center space-x-2">
-                        <Crown className="h-4 w-4 text-yellow-500" />
-                        <span>Status</span>
+                        <User className="h-4 w-4" />
+                        <span>Role</span>
                       </div>
-                      <span className="text-sm font-medium text-yellow-500">
-                        VIP
+                      <span className="text-sm font-medium capitalize">
+                        {userData?.role || 'user'}
                       </span>
                     </DropdownMenuItem>
-                  )}
-                  
-                  <DropdownMenuSeparator />
-                  
-                  {/* Sign Out */}
-                  <DropdownMenuItem 
-                    className="text-red-600 focus:text-red-600 cursor-pointer"
-                    onClick={signOut}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <LogOut className="h-4 w-4" />
-                      <span>Sign Out</span>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    
+                    <DropdownMenuItem className="flex items-center justify-between" disabled>
+                      <div className="flex items-center space-x-2">
+                        <Wallet className="h-4 w-4" />
+                        <span>Credits</span>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {formatNumber(userData?.credits || 0)}
+                      </span>
+                    </DropdownMenuItem>
+                    
+                    {userData?.isVip && (
+                      <DropdownMenuItem className="flex items-center justify-between" disabled>
+                        <div className="flex items-center space-x-2">
+                          <Crown className="h-4 w-4 text-yellow-500" />
+                          <span>Status</span>
+                        </div>
+                        <span className="text-sm font-medium text-yellow-500">
+                          VIP
+                        </span>
+                      </DropdownMenuItem>
+                    )}
+                    
+                    <DropdownMenuSeparator />
+                    
+                    {/* Sign Out */}
+                    <DropdownMenuItem 
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                      onClick={signOut}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <LogOut className="h-4 w-4" />
+                        <span>Sign Out</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
           </div>
         </div>

@@ -1,31 +1,38 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
 
-const inter = Inter({
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  variable: "--font-inter",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Dramaflex - Streaming Platform",
-  description: "Modern streaming platform with community features and powerful API.",
-  keywords: ["Dramaflex", "Streaming", "Community", "API", "Next.js", "TypeScript"],
+  description: "Next generation streaming platform with community features",
+  keywords: ["streaming", "drama", "community", "platform"],
   authors: [{ name: "Dramaflex Team" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
     title: "Dramaflex",
-    description: "Modern streaming platform with community features",
+    description: "Next generation streaming platform",
+    url: "https://dramaflex.com",
+    siteName: "Dramaflex",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Dramaflex",
-    description: "Modern streaming platform with community features",
+    description: "Next generation streaming platform",
   },
 };
 
@@ -37,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <AuthProvider>
           {children}

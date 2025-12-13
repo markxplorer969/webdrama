@@ -1,146 +1,95 @@
 'use client';
 
+import { HeroBento } from '@/components/home/HeroBento';
+import { LatestGrid } from '@/components/home/LatestGrid';
 import { Navbar } from '@/components/Navbar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Activity, Globe, Zap, Shield, BarChart3 } from 'lucide-react';
+import { useTrending } from '@/hooks/useHomeData';
 
 export default function Home() {
+  const { trending, isLoading: trendingLoading } = useTrending();
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Navbar />
       
-      {/* Hero Section with Bento Grid */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[200px]">
-          
-          {/* Hero Card - Spans 2 columns on desktop */}
-          <Card className="md:col-span-2 row-span-2 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300 group">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Welcome to Dramaflex
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Experience the next generation of streaming with our powerful platform. 
-                Connect with communities, access premium content, and enjoy seamless streaming.
-              </p>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <div className="flex items-center gap-2 text-sm bg-primary/10 px-3 py-1 rounded-full">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span>Lightning Fast</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm bg-secondary px-3 py-1 rounded-full">
-                  <Shield className="h-4 w-4" />
-                  <span>Secure Platform</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm bg-accent px-3 py-1 rounded-full">
-                  <Globe className="h-4 w-4" />
-                  <span>Global Access</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <main>
+        {/* Hero Section with Bento Grid */}
+        <HeroBento trending={trending} />
 
-          {/* Active Users Stat Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 group hover:-translate-y-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Users className="h-8 w-8 text-primary" />
-                <span className="text-xs text-muted-foreground">Live Now</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="text-2xl font-bold">12,847</div>
-                <div className="text-sm text-muted-foreground">Active Users</div>
-                <div className="flex items-center gap-1 text-xs text-green-600">
-                  <Activity className="h-3 w-3" />
-                  <span>+12% from last week</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Trending Row */}
+        <section className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-3">
+              🔥 Sedang Hype
+            </h2>
+            <p className="text-zinc-400">
+              Most popular dramas this week
+            </p>
+          </div>
 
-          {/* Community Guilds Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 group hover:-translate-y-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Users className="h-8 w-8 text-primary" />
-                <span className="text-xs text-muted-foreground">Featured</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <h3 className="font-semibold">Community Guilds</h3>
-                <p className="text-sm text-muted-foreground">
-                  Join vibrant communities, share experiences, and connect with like-minded enthusiasts.
-                </p>
-                <div className="flex gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center text-white text-xs font-bold">
-                    +5
+          {/* Horizontal Scroll List */}
+          <div className="relative">
+            {trendingLoading ? (
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="flex-shrink-0 w-48 space-y-3">
+                    <div className="aspect-[2/3] bg-zinc-900/50 rounded-lg animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-4 bg-zinc-800 rounded w-3/4"></div>
+                      <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
+                      <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto pb-4">
+                {trending.map((drama, index) => (
+                  <div key={drama.book_id} className="flex-shrink-0 w-48 group">
+                    <div className="relative overflow-hidden rounded-lg bg-zinc-900/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:bg-zinc-900/70">
+                      {/* Poster Image */}
+                      <div className="relative aspect-[2/3] overflow-hidden">
+                        <img
+                          src={drama.image}
+                          alt={drama.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                        
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {/* Rank Badge */}
+                        <div className="absolute top-2 left-2">
+                          <div className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded">
+                            #{drama.rank}
+                          </div>
+                        </div>
 
-          {/* Streaming API Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 group hover:-translate-y-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Zap className="h-8 w-8 text-primary" />
-                <span className="text-xs text-muted-foreground">Developer</span>
+                        {/* Content */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                          <h4 className="text-white font-semibold text-sm line-clamp-2 group-hover:text-amber-200 transition-colors duration-300">
+                            {drama.title}
+                          </h4>
+                          
+                          <div className="flex items-center justify-between text-zinc-300 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span>👁 {drama.views}</span>
+                              <span>• {drama.episodes} EP</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <h3 className="font-semibold">Streaming API</h3>
-                <p className="text-sm text-muted-foreground">
-                  Powerful RESTful API for seamless integration with your applications.
-                </p>
-                <div className="flex gap-2">
-                  <span className="text-xs bg-secondary px-2 py-1 rounded">REST</span>
-                  <span className="text-xs bg-secondary px-2 py-1 rounded">WebSocket</span>
-                  <span className="text-xs bg-secondary px-2 py-1 rounded">Real-time</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+        </section>
 
-          {/* Analytics Card */}
-          <Card className="hover:shadow-lg transition-all duration-300 group hover:-translate-y-1">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <BarChart3 className="h-8 w-8 text-primary" />
-                <span className="text-xs text-muted-foreground">Analytics</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <h3 className="font-semibold">Performance Metrics</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Uptime</span>
-                    <span className="text-green-600 font-medium">99.9%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Avg Latency</span>
-                    <span className="font-medium">24ms</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Bandwidth</span>
-                    <span className="font-medium">1.2TB/s</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-        </div>
+        {/* Latest Updates Grid */}
+        <LatestGrid />
       </main>
     </div>
   );

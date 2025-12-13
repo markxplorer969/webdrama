@@ -1,19 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  updateProfile,
-  signOut as firebaseSignOut,
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
-
-import { auth, db, googleProvider } from '@/lib/firebase';
 
 // Types
 export type UserRole = 'admin' | 'user';
@@ -28,6 +16,9 @@ export interface UserData {
   createdAt: any;
   lastLogin?: any;
 }
+
+// Use a type for User since we're importing dynamically
+type User = any;
 
 interface AuthContextType {
   user: User | null;
@@ -78,39 +69,59 @@ const triggerDiscordWebhook = async (email: string, displayName: string, uid: st
   }
 };
 
-const createUserData = async (user: User, method: 'google' | 'email'): Promise<UserData> => {
-  const userData: UserData = {
-    uid: user.uid,
-    email: user.email!,
-    displayName: user.displayName || user.email!.split('@')[0],
-    role: 'user',
-    credits: 0,
-    isVip: false,
-    createdAt: serverTimestamp(),
-    lastLogin: serverTimestamp()
-  };
-
-  await setDoc(doc(db, 'users', user.uid), userData);
-  
-  // Trigger Discord webhook for new user
-  await triggerDiscordWebhook(userData.email, userData.displayName, userData.uid, method);
-
-  return userData;
-};
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseModules, setFirebaseModules] = useState<any>(null);
+
+  // Load Firebase modules dynamically
+  useEffect(() => {
+    const loadFirebase = async () => {
+      try {
+        const authModule = await import('firebase/auth');
+        const firestoreModule = await import('firebase/firestore');
+        const firebaseConfig = await import('@/lib/firebase');
+
+        setFirebaseModules({
+          getAuth: authModule.getAuth,
+          User: authModule.User,
+          signInWithPopup: authModule.signInWithPopup,
+          signInWithEmailAndPassword: authModule.signInWithEmailAndPassword,
+          createUserWithEmailAndPassword: authModule.createUserWithEmailAndPassword,
+          updateProfile: authModule.updateProfile,
+          firebaseSignOut: authModule.signOut,
+          onAuthStateChanged: authModule.onAuthStateChanged,
+          doc: firestoreModule.doc,
+          setDoc: firestoreModule.setDoc,
+          getDoc: firestoreModule.getDoc,
+          updateDoc: firestoreModule.updateDoc,
+          serverTimestamp: firestoreModule.serverTimestamp,
+          auth: firebaseConfig.auth,
+          db: firebaseConfig.db,
+          googleProvider: firebaseConfig.googleProvider
+        });
+      } catch (error) {
+        console.error('Failed to load Firebase modules:', error);
+        toast.error('Failed to initialize authentication');
+        setLoading(false);
+      }
+    };
+
+    loadFirebase();
+  }, []);
 
   const fetchUserData = async (user: User): Promise<UserData | null> => {
+    if (!firebaseModules) return null;
+    
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const { getDoc, doc, updateDoc, serverTimestamp } = firebaseModules;
+      const userDoc = await getDoc(doc(firebaseModules.db, 'users', user.uid));
       
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
         // Update last login
-        await updateDoc(doc(db, 'users', user.uid), {
+        await updateDoc(doc(firebaseModules.db, 'users', user.uid), {
           lastLogin: serverTimestamp()
         });
         return { ...data, lastLogin: new Date() };
@@ -123,9 +134,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const createUserData = async (user: User, method: 'google' | 'email'): Promise<UserData> => {
+    if (!firebaseModules) throw new Error('Firebase not initialized');
+    
+    const { doc, setDoc, serverTimestamp } = firebaseModules;
+    const userData: UserData = {
+      uid: user.uid,
+      email: user.email!,
+      displayName: user.displayName || user.email!.split('@')[0],
+      role: 'user',
+      credits: 0,
+      isVip: false,
+      createdAt: serverTimestamp(),
+      lastLogin: serverTimestamp()
+    };
+
+    await setDoc(doc(firebaseModules.db, 'users', user.uid), userData);
+    
+    // Trigger Discord webhook for new user
+    await triggerDiscordWebhook(userData.email, userData.displayName, userData.uid, method);
+
+    return userData;
+  };
+
   const signInWithGoogle = async () => {
+    if (!firebaseModules) return;
+    
     try {
       setLoading(true);
+      const { signInWithPopup, auth, googleProvider } = firebaseModules;
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
@@ -152,8 +189,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
+    if (!firebaseModules) return;
+    
     try {
       setLoading(true);
+      const { signInWithEmailAndPassword, auth } = firebaseModules;
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -176,8 +216,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    if (!firebaseModules) return;
+    
     try {
       setLoading(true);
+      const { createUserWithEmailAndPassword, updateProfile, auth } = firebaseModules;
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -199,7 +242,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (!firebaseModules) return;
+    
     try {
+      const { firebaseSignOut, auth } = firebaseModules;
       await firebaseSignOut(auth);
       setUser(null);
       setUserData(null);
@@ -210,7 +256,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Set up auth state listener
   useEffect(() => {
+    if (!firebaseModules) return;
+
+    const { onAuthStateChanged, auth } = firebaseModules;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       
@@ -225,7 +275,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return unsubscribe;
-  }, []);
+  }, [firebaseModules]);
 
   const value: AuthContextType = {
     user,

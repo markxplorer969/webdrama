@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { UserData } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -12,129 +10,89 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, Coins, Crown, Trash2, Plus } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, Edit, Trash2, Users, Crown } from 'lucide-react';
 import { toast } from 'sonner';
+import { UserData } from '@/context/AuthContext';
+import { EditUserDialog } from '@/components/admin/users/EditUserDialog';
+import { DeleteUserAlert } from '@/components/admin/users/DeleteUserAlert';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [creditsAmount, setCreditsAmount] = useState<string>('');
-  const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
 
-  // Fetch users in real-time
+  // Real-time data fetching
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, 'users'),
-      (snapshot) => {
-        const usersData = snapshot.docs.map(doc => ({
-          uid: doc.id,
-          ...doc.data()
-        } as UserData));
-        setUsers(usersData);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching users:', error);
-        toast.error('Failed to fetch users');
+    const fetchUsers = async () => {
+      try {
+        const { onSnapshot, collection, query, orderBy } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+
+        const q = query(
+          collection(db, 'users'),
+          orderBy('createdAt', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const usersData: UserData[] = [];
+          snapshot.forEach((doc) => {
+            usersData.push({
+              uid: doc.id,
+              ...doc.data()
+            } as UserData);
+          });
+          setUsers(usersData);
+          setLoading(false);
+        }, (error) => {
+          console.error('Error fetching users:', error);
+          toast.error('Failed to fetch users');
+          setLoading(false);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error setting up listener:', error);
+        toast.error('Failed to initialize user listener');
         setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    const unsubscribe = fetchUsers();
+
+    return () => {
+      unsubscribe.then(unsub => unsub?.());
+    };
   }, []);
 
-  const handleAddCredits = async () => {
-    if (!selectedUser || !creditsAmount) return;
-
-    const amount = parseInt(creditsAmount);
-    if (isNaN(amount) || amount === 0) {
-      toast.error('Please enter a valid amount');
-      return;
-    }
-
-    setUpdating(selectedUser.uid);
-    try {
-      const userRef = doc(db, 'users', selectedUser.uid);
-      await updateDoc(userRef, {
-        credits: increment(amount)
-      });
-      
-      toast.success(`Added ${amount > 0 ? '+' : ''}${amount} credits to ${selectedUser.displayName}`);
-      setCreditsDialogOpen(false);
-      setCreditsAmount('');
-      setSelectedUser(null);
-    } catch (error) {
-      console.error('Error adding credits:', error);
-      toast.error('Failed to update credits');
-    } finally {
-      setUpdating(null);
-    }
-  };
-
-  const handleToggleVIP = async (user: UserData) => {
-    setUpdating(user.uid);
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        isVip: !user.isVip
-      });
-      
-      toast.success(`${user.displayName} is now ${!user.isVip ? 'VIP' : 'Regular'} user`);
-    } catch (error) {
-      console.error('Error toggling VIP:', error);
-      toast.error('Failed to update VIP status');
-    } finally {
-      setUpdating(null);
-    }
+  const handleEditUser = (user: UserData) => {
+    setSelectedUser(user);
+    setEditDialogOpen(true);
   };
 
   const handleDeleteUser = (user: UserData) => {
-    console.log(`Delete functionality coming soon for user: ${user.displayName} (${user.email})`);
-    toast.info('Delete functionality coming soon - requires Cloud Functions');
+    setSelectedUser(user);
+    setDeleteAlertOpen(true);
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const handleUserUpdated = () => {
+    // Data will update automatically via real-time listener
+    toast.success('User updated successfully');
+  };
+
+  const handleUserDeleted = () => {
+    // Data will update automatically via real-time listener
+    toast.success('User deleted successfully');
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading users...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -144,193 +102,164 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">
-            Manage all registered users ({users.length} total)
+            Manage and monitor platform users
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            {users.length} total users
+          </span>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.filter(u => u.role === 'admin').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">VIP Users</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.filter(u => u.isVip).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.reduce((sum, u) => sum + u.credits, 0)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Users Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead className="text-center">Credits</TableHead>
-              <TableHead className="text-center">VIP Status</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.uid}>
-                <TableCell>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={undefined} alt={user.displayName} />
-                      <AvatarFallback className="text-xs">
-                        {getInitials(user.displayName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">{user.displayName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        ID: {user.uid.slice(0, 8)}...
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                    {user.role}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center space-x-1">
-                    <Coins className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">{user.credits}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center">
-                    {user.isVip ? (
-                      <Badge variant="default" className="bg-gradient-to-r from-yellow-500 to-orange-500">
-                        <Crown className="h-3 w-3 mr-1" />
-                        VIP
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Regular</Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center space-x-2">
-                    {/* Add Credits */}
-                    <Dialog
-                      open={creditsDialogOpen && selectedUser?.uid === user.uid}
-                      onOpenChange={(open) => {
-                        setCreditsDialogOpen(open);
-                        if (!open) {
-                          setSelectedUser(null);
-                          setCreditsAmount('');
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedUser(user)}
-                          disabled={updating === user.uid}
-                        >
-                          <Coins className="h-4 w-4 mr-1" />
-                          Credits
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Manage Credits</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Users</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Credits</TableHead>
+                  <TableHead>VIP</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.uid}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.photoURL} />
+                            <AvatarFallback>
+                              {user.displayName.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
-                            <Label htmlFor="credits">User: {selectedUser?.displayName}</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Current credits: {selectedUser?.credits}
-                            </p>
-                          </div>
-                          <div>
-                            <Label htmlFor="amount">Amount (use negative to remove)</Label>
-                            <Input
-                              id="amount"
-                              type="number"
-                              placeholder="Enter amount"
-                              value={creditsAmount}
-                              onChange={(e) => setCreditsAmount(e.target.value)}
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setCreditsDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={handleAddCredits}
-                              disabled={updating === user.uid || !creditsAmount}
-                            >
-                              {updating === user.uid ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : (
-                                <Plus className="h-4 w-4 mr-2" />
-                              )}
-                              Update Credits
-                            </Button>
+                            <div className="font-medium">{user.displayName}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {user.email}
+                            </div>
                           </div>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Toggle VIP */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleVIP(user)}
-                      disabled={updating === user.uid}
-                    >
-                      {updating === user.uid ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Crown className={`h-4 w-4 ${user.isVip ? 'text-yellow-500' : ''}`} />
-                      )}
-                    </Button>
-
-                    {/* Delete User */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedUser(user)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete User</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete {user.displayName}? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteUser(user)}
-                            className="bg-red-600 hover:bg-red-700"
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{user.credits}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.isVip ? 'default' : 'outline'}>
+                          {user.isVip ? 'Yes' : 'No'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-      {users.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No users found</p>
-        </div>
-      )}
+      {/* Edit Dialog */}
+      <EditUserDialog
+        user={selectedUser}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUserUpdated={handleUserUpdated}
+      />
+
+      {/* Delete Alert */}
+      <DeleteUserAlert
+        user={selectedUser}
+        open={deleteAlertOpen}
+        onOpenChange={setDeleteAlertOpen}
+        onUserDeleted={handleUserDeleted}
+      />
     </div>
   );
 }
