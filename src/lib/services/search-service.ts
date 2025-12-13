@@ -40,7 +40,7 @@ export async function getSearchResults(query: string): Promise<DramaItem[]> {
         const cacheRef = adminDb.collection('search_cache').doc(cacheKey);
         await cacheRef.set({
           results,
-          timestamp: adminDb.firestore.FieldValue.serverTimestamp()
+          timestamp: new Date()
         });
         console.log(`💾 Cached search results for "${query}" with ${results.length} items`);
       } catch (cacheError) {

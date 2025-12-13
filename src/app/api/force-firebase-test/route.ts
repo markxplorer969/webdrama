@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import fs from 'fs';
 
 export async function GET() {
   try {
@@ -11,14 +12,15 @@ export async function GET() {
       admin.apps.forEach(app => app.delete());
     }
     
-    // Initialize with correct project ID
+    // Read service account file
+    const serviceAccountPath = './firebase-service-account.json';
+    const serviceAccountData = fs.readFileSync(serviceAccountPath, 'utf8');
+    const serviceAccount = JSON.parse(serviceAccountData);
+    
+    // Initialize with service account
     admin.initializeApp({
       projectId: 'dramaflex-38877',
-      credential: admin.credential.cert({
-        projectId: 'dramaflex-38877',
-        clientEmail: 'firebase-adminsdk-fbsvc@dramaflex-38877.iam.gserviceaccount.com',
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
+      credential: admin.credential.cert(serviceAccount),
     });
     
     console.log("✅ [Force Test] Firebase initialized with dramaflex-38877");
