@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { RedeemModal } from '@/components/wallet/RedeemModal';
+import { SearchCommand } from '@/components/search/SearchCommand';
 import { 
   Search, 
   Menu, 
@@ -101,14 +102,10 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center space-x-3">
               
               {/* Search Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="text-zinc-300 hover:text-white"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+              <SearchCommand 
+                open={isSearchOpen} 
+                onOpenChange={setIsSearchOpen}
+              />
 
               {/* Credits Display */}
               {user && (
@@ -304,35 +301,6 @@ export const Navbar: React.FC = () => {
         open={isRedeemModalOpen}
         onOpenChange={setIsRedeemModalOpen}
       />
-
-      {/* Search Modal/Command - Placeholder for future implementation */}
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setIsSearchOpen(false)} />
-          <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-lg p-4 w-full max-w-md">
-            <div className="flex items-center space-x-3 mb-4">
-              <Search className="h-5 w-5 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search dramas..."
-                className="flex-1 bg-transparent border-none outline-none text-white placeholder:text-zinc-400"
-                autoFocus
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsSearchOpen(false)}
-                className="text-zinc-400 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="text-sm text-zinc-400">
-              Search functionality coming soon...
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

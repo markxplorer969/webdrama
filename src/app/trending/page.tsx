@@ -1,64 +1,46 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { DramaCard } from '@/components/home/DramaCard';
 
-interface SearchPageProps {
-  searchParams: Promise<{ q?: string }>;
+interface TrendingPageProps {
+  searchParams: Promise<{ page?: string }>;
 }
 
 export const metadata: Metadata = {
-  title: 'Search Dramas - DramaFlex',
-  description: 'Search for your favorite dramas, series, and movies on DramaFlex',
+  title: 'Trending Dramas - DramaFlex',
+  description: 'Discover the most popular and trending dramas on DramaFlex',
 };
 
-async function SearchResults({ query }: { query: string }) {
-  // Fetch search results directly from scraper (no cache)
-  let results = [];
+async function TrendingContent({ page }: { page: number }) {
+  // Fetch trending data from API
+  let trending = [];
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/search?q=${encodeURIComponent(query)}`, {
-      cache: 'no-store', // Ensure fresh data
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/home`, {
+      cache: 'no-store',
     });
     
     if (response.ok) {
       const data = await response.json();
-      results = data.success ? data.data : [];
+      trending = data.trending || [];
     }
   } catch (error) {
-    console.error('Search fetch error:', error);
+    console.error('Trending fetch error:', error);
   }
 
-  if (!query.trim()) {
+  if (trending.length === 0) {
     return (
       <div className="text-center py-16">
-        <Search className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
+        <TrendingUp className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-zinc-400 mb-2">
-          Enter a search keyword
+          No trending dramas available
         </h2>
         <p className="text-zinc-500">
-          Search for your favorite dramas, series, and movies.
-        </p>
-      </div>
-    );
-  }
-
-  if (results.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Search className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-zinc-400 mb-2">
-          No results found
-        </h2>
-        <p className="text-zinc-500">
-          We couldn&apos;t find any dramas matching &quot;{query}&quot;.
-        </p>
-        <p className="text-zinc-500 text-sm">
-          Try different keywords or check your spelling.
+          Check back later for the most popular dramas.
         </p>
       </div>
     );
@@ -66,7 +48,7 @@ async function SearchResults({ query }: { query: string }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {results.map((drama, index) => (
+      {trending.map((drama, index) => (
         <DramaCard 
           key={`${drama.book_id}-${index}`}
           drama={drama}
@@ -77,9 +59,9 @@ async function SearchResults({ query }: { query: string }) {
   );
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
+export default async function TrendingPage({ searchParams }: TrendingPageProps) {
   const resolvedParams = await searchParams;
-  const query = resolvedParams.q || '';
+  const page = parseInt(resolvedParams.page || '1');
 
   return (
     <>
@@ -97,14 +79,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </Link>
             
             <div className="flex items-center gap-2">
-              <Search className="w-5 h-5 text-zinc-400" />
+              <TrendingUp className="w-5 h-5 text-rose-500" />
               <h1 className="text-xl font-bold text-white">
-                {query ? `Results for "${query}"` : 'Search Dramas'}
+                Trending Dramas
               </h1>
             </div>
           </div>
 
-          {/* Search Results */}
+          {/* Trending Content */}
           <Suspense fallback={
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -116,7 +98,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               ))}
             </div>
           }>
-            <SearchResults query={query} />
+            <TrendingContent page={page} />
           </Suspense>
         </div>
       </main>

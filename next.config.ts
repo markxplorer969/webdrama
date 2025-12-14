@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'hwztchapter.dramaboxdb.com',
+        port: '',
+        pathname: '/data/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'via.placeholder.com',
         port: '',
         pathname: '/**',
