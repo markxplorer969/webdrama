@@ -12,6 +12,32 @@ const nextConfig: NextConfig = {
     // 构建时忽略ESLint错误
     ignoreDuringBuilds: true,
   },
+  // Configure image domains for Next.js Image component
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'thwztchapter.dramaboxdb.com',
+        port: '',
+        pathname: '/data/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dramabox.web.id',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+    // Fallback for unconfigured domains
+    dangerouslyAllowSVG: true,
+    unoptimized: false,
+  },
 };
 
 export default nextConfig;

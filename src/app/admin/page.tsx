@@ -13,11 +13,13 @@ import {
   Plus,
   Settings,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatRupiah, formatNumber } from '@/lib/currency';
 import { UserData } from '@/context/AuthContext';
+import { SyncContentButton } from '@/components/admin/SyncContentButton';
 
 interface Voucher {
   id: string;
@@ -184,7 +186,7 @@ export default function AdminDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Link href="/admin/vouchers">
               <Button className="w-full h-16 flex items-center justify-center gap-3">
                 <Plus className="h-5 w-5" />
@@ -204,6 +206,10 @@ export default function AdminDashboard() {
                 </div>
               </Button>
             </Link>
+
+            <div className="w-full">
+              <SyncContentButton className="w-full h-16 flex items-center justify-center gap-3" />
+            </div>
           </div>
         </CardContent>
       </Card>
