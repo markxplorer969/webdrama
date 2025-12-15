@@ -1,11 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ChevronLeft, Heart, List, Play, LayoutGrid, Loader2, Calendar, Users, Clock } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { WatchContent } from './WatchContent';
+import WatchClient from '@/components/watch/WatchClient';
 
 interface WatchPageProps {
   params: Promise<{ bookId: string }>;
@@ -39,7 +34,7 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const bookId = resolvedParams.bookId;
-  const episode = resolvedSearchParams.episode || '1';
+  const initialEpisode = resolvedSearchParams.episode || '1';
 
   const drama = await getDramaDetail(bookId);
 
@@ -49,11 +44,12 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
         <div className="text-center space-y-6">
           <h1 className="text-3xl font-bold text-white mb-4">Drama Not Found</h1>
           <p className="text-zinc-400 mb-6">The drama you're looking for doesn't exist or has been removed.</p>
-          <Link href="/">
-            <Button className="bg-rose-600 hover:bg-rose-700">
-              Back to Home
-            </Button>
-          </Link>
+          <a 
+            href="/"
+            className="inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-700 px-6 py-3 text-white font-medium transition-colors"
+          >
+            Back to Home
+          </a>
         </div>
       </div>
     );
@@ -61,7 +57,10 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <WatchContent drama={drama} episode={episode} />
+      <WatchClient 
+        drama={drama} 
+        initialEpisode={initialEpisode}
+      />
     </div>
   );
 }

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const userRef = adminDb.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
-    if (!userDoc.exists()) {
+    if (!userDoc.exists) {
       return NextResponse.json(
         { 
           success: false, 
@@ -50,15 +50,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process unlock
+    // Process unlock with COMPOSITE KEY SYSTEM (Backward Compatible)
     const newBalance = currentCredits - cost;
     const unlockedEpisodes = userData.unlocked_episodes || [];
     const history = userData.history || [];
+    
+    // CRITICAL FIX: Create composite key for drama-specific unlocks
+    const unlockKey = `${dramaId}_${episodeId}`;
+    
+    // Check if episode is already unlocked with composite key OR old format
+    const isAlreadyUnlocked = unlockedEpisodes.includes(unlockKey) || 
+                           unlockedEpisodes.includes(episodeId);
+    
+    if (isAlreadyUnlocked) {
+      return NextResponse.json({
+        success: true,
+        message: 'Episode already unlocked',
+        dramaId,
+        episodeId,
+        alreadyUnlocked: true,
+        unlockKey // Return the composite key for reference
+      });
+    }
 
-    // Update user document
+    // Update user document with composite key
     await userRef.update({
       credits: newBalance,
-      unlocked_episodes: [...unlockedEpisodes, episodeId],
+      unlocked_episodes: [...unlockedEpisodes, unlockKey],
       history: [...history, `${dramaId}:${episodeId}`],
       lastUnlockedAt: serverTimestamp()
     });

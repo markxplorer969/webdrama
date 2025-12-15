@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { ChevronLeft, Heart, List, Play, LayoutGrid, Loader2, Calendar, Users, Clock, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, Heart, List, Play, LayoutGrid, Loader2, Calendar, Users, Clock } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -9,27 +9,46 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
-interface WatchClientProps {
-  drama: any;
-  episodes: any[];
+interface Episode {
+  episode: number;
+  id: string;
+  title?: string;
+  is_free?: boolean;
 }
 
-async function getStreamUrl(bookId: string, episode: string) {
-  try {
-    const response = await fetch(`/api/stream?bookId=${bookId}&episode=${episode}`, {
-      cache: 'no-store',
-    });
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
-    return data.success ? data.data : null;
-  } catch (error) {
-    console.error('Failed to fetch stream URL:', error);
-    return null;
-  }
+interface Drama {
+  book_id: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  poster?: string;
+  upload_date: string;
+  release_year?: string;
+  rating?: string;
+  duration?: string;
+  status: string;
+  country?: string;
+  language?: string;
+  director?: string;
+  cast?: string[];
+  genres?: string[];
+  stats: {
+    followers: string;
+    total_episodes: string;
+    views?: string;
+  };
+  episode_list: Episode[];
+}
+
+interface StreamData {
+  book_id: string;
+  episode: string;
+  video_url: string;
+}
+
+interface WatchClientProps {
+  drama: Drama;
+  initialEpisode: string;
 }
 
 function LoadingSkeleton() {
@@ -85,149 +104,236 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
   );
 }
 
-export function WatchClient({ drama, episodes }: WatchClientProps) {
-  const [streamData, setStreamData] = React.useState<any>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [currentEpisode, setCurrentEpisode] = React.useState<string>('');
-  const [isUnlocking, setIsUnlocking] = React.useState<string | null>(null);
-  const [autoPlay, setAutoPlay] = React.useState(false);
-  const { userData } = useAuth();
+export default function WatchClient({ drama, initialEpisode }: WatchClientProps) {
+  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+  const [streamData, setStreamData] = useState<StreamData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState<string | null>(null);
+  const [autoPlay, setAutoPlay] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const { userData, updateUserData } = useAuth();
 
-  // Initialize with first episode or URL param
-  React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const episodeParam = urlParams.get('ep');
-    
-    if (episodeParam) {
-      // Use URL parameter if available
-      setCurrentEpisode(episodeParam);
-    } else if (episodes.length > 0) {
-      // Otherwise use first episode
-      setCurrentEpisode(episodes[0].id);
+  // Initialize current episode based on initialEpisode prop
+  useEffect(() => {
+    const episode = drama.episode_list.find(ep => ep.episode === parseInt(initialEpisode));
+    if (episode) {
+      setCurrentEpisode(episode);
+    } else if (drama.episode_list.length > 0) {
+      setCurrentEpisode(drama.episode_list[0]);
     }
-  }, [drama, episodes]);
+  }, [drama.episode_list, initialEpisode]);
 
-  // Auto-play when current episode changes
-  React.useEffect(() => {
-    if (currentEpisode && autoPlay) {
-      setAutoPlay(false);
-    }
-  }, [currentEpisode, autoPlay]);
+  // Fetch stream data when current episode changes
+  useEffect(() => {
+    if (!currentEpisode) return;
 
-  const handleEpisodeChange = async (targetEpisodeId: string, targetEpisodeNumber: number) => {
-    // Check if episode is already unlocked
-    const isUnlocked = userData?.unlocked_episodes?.includes(targetEpisodeId);
+    const fetchStreamData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/stream?bookId=${drama.book_id}&episode=${currentEpisode.episode}`, {
+          cache: 'no-store',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setStreamData(data.data);
+          } else {
+            setError('Failed to load video');
+          }
+        } else {
+          setError('Video not available');
+        }
+      } catch (err) {
+        setError('An error occurred while loading video');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStreamData();
+  }, [currentEpisode, drama.book_id]);
+
+  // Update URL without page reload
+  const updateURL = (episodeNumber: number) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('episode', episodeNumber.toString());
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  // Check if episode is accessible with COMPOSITE KEY SYSTEM (Backward Compatible)
+  const isEpisodeAccessible = (episode: Episode): boolean => {
+    if (!userData) return false;
+    if (episode.is_free) return true;
     
-    if (isUnlocked) {
-      // Episode is already unlocked, play immediately
-      setCurrentEpisode(targetEpisodeId);
-      setAutoPlay(true);
+    // CRITICAL FIX: Use composite key for drama-specific unlock checking
+    const unlockKey = `${drama.book_id}_${episode.id}`;
+    
+    // Check for new composite key format first
+    if (userData.unlocked_episodes?.includes(unlockKey)) {
+      return true;
+    }
+    
+    // Backward compatibility: Check for old format (episode ID only)
+    // This allows existing users to still access their previously unlocked episodes
+    if (userData.unlocked_episodes?.includes(episode.id)) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // CRITICAL FIX: Rewritten handleEpisodeChange with strict error handling
+  const handleEpisodeChange = async (targetEp: Episode) => {
+    // 1. Prevent clicking current ep or if already processing
+    if (!currentEpisode || currentEpisode.id === targetEp.id || isUnlocking) {
       return;
     }
 
-    // Check if user has sufficient credits
-    if (!userData || userData.credits < 5) {
-      toast.error('Saldo Habis. Silakan topup.');
-      return;
-    }
-
-    // Start unlock process
-    setIsUnlocking(targetEpisodeId);
+    // 2. Start button spinner immediately
+    setIsUnlocking(targetEp.id);
 
     try {
-      const response = await fetch('/api/user/unlock', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          uid: userData.uid,
-          dramaId: drama.book_id,
-          episodeId: targetEpisodeId,
-          cost: 5
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Update local user data
-        userData.credits = result.newBalance;
-        userData.unlocked_episodes?.push(targetEpisodeId);
-        userData.history?.push(`${drama.book_id}:${targetEpisodeId}`);
-
-        setCurrentEpisode(targetEpisodeId);
-        setAutoPlay(true);
-        toast.success(`Episode berhasil dibuka! -5 credits`);
-      } else {
-        toast.error(result.error || 'Failed to unlock episode');
+      // 3. Check if user is authenticated
+      if (!userData) {
+        toast.error('Please sign in to unlock episodes');
+        return;
       }
+
+      // 4. Check if episode is locked
+      const isLocked = !isEpisodeAccessible(targetEp);
+
+      if (isLocked) {
+        // 5. Check Balance BEFORE any API call
+        if (userData.credits < 5) {
+          toast.error("Saldo tidak cukup! Silakan Top Up.");
+          return; // STOP here - but finally will still clear loading
+        }
+
+        // 6. Process Transaction
+        const response = await fetch('/api/user/unlock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: userData.uid,
+            dramaId: drama.book_id,
+            episodeId: targetEp.id,
+            cost: 5
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          toast.error(result.error || 'Failed to unlock episode');
+          return; // STOP here - but finally will still clear loading
+        }
+
+        // 7. Update Auth Context locally with COMPOSITE KEY
+        const unlockKey = `${drama.book_id}_${targetEp.id}`;
+        updateUserData({
+          credits: result.newBalance,
+          unlocked_episodes: [...(userData.unlocked_episodes || []), unlockKey],
+          history: [...(userData.history || []), `${drama.book_id}:${targetEp.id}`]
+        });
+
+        toast.success("Episode Terbuka (-5 Credits)");
+      }
+
+      // 8. THE CRITICAL SWITCH - This ALWAYS happens if we reach here
+      setCurrentEpisode(targetEp);
+      updateURL(targetEp.episode);
+      setAutoPlay(true);
+
     } catch (error) {
-      console.error('Unlock error:', error);
-      toast.error('Failed to unlock episode');
+      console.error('Episode change error:', error);
+      toast.error("Gagal memuat episode.");
     } finally {
+      // 9. ALWAYS STOP LOADING - This prevents hanging spinners
       setIsUnlocking(null);
     }
   };
 
-  const handleVideoEnded = () => {
-    // Find current episode index
-    const currentIndex = episodes.findIndex(ep => ep.id === currentEpisode);
-    
-    if (currentIndex !== -1 && currentIndex < episodes.length - 1) {
-      // Move to next episode
-      const nextEpisode = episodes[currentIndex + 1];
-      handleEpisodeChange(nextEpisode.id, nextEpisode.episode);
+  // Handle video end for auto-next episode
+  const handleVideoEnd = () => {
+    if (!currentEpisode) return;
+
+    const currentIndex = drama.episode_list.findIndex(ep => ep.id === currentEpisode.id);
+    const nextEpisode = drama.episode_list[currentIndex + 1];
+
+    if (nextEpisode) {
+      handleEpisodeChange(nextEpisode);
     }
   };
 
-  if (isLoading) {
+  // Auto-play when stream data is available and autoPlay is true
+  useEffect(() => {
+    if (streamData?.video_url && autoPlay && videoRef.current) {
+      videoRef.current.play().catch(err => {
+        console.log('Auto-play failed:', err);
+      });
+      setAutoPlay(false);
+    }
+  }, [streamData, autoPlay]);
+
+  if (isLoading && !streamData) {
     return <LoadingSkeleton />;
   }
 
-  if (error) {
+  if (error && !streamData) {
     return <ErrorState error={error} onRetry={() => window.location.reload()} />;
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-20">
-      {/* Video Player Area */}
+      {/* CRITICAL FIX: Video Player Area with proper key handling */}
       <div className="relative w-full aspect-video bg-black shadow-2xl">
-        {streamData?.video_url ? (
-          <video
-            key={currentEpisode} // Force re-render when episode changes
-            controls
-            autoPlay={autoPlay}
-            className="w-full h-full"
-            preload="metadata"
-            poster={drama.thumbnail}
-            onEnded={handleVideoEnded}
-          >
-            <source src={streamData.video_url} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        ) : (
-          <div className="relative w-full h-full">
-            <Image
-              src={drama.thumbnail}
-              alt={drama.title}
-              fill
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <div className="bg-rose-600 hover:bg-rose-700 text-white rounded-full p-4 transition-colors cursor-pointer">
-                <Play className="w-8 h-8" fill="white" />
+        {currentEpisode && (
+          <>
+            {streamData?.video_url ? (
+              <video
+                ref={videoRef}
+                // THE SECRET SAUCE: Key prop forces React to destroy and recreate video element
+                key={currentEpisode.id}
+                controls
+                className="w-full h-full"
+                preload="metadata"
+                poster={drama.thumbnail}
+                onEnded={handleVideoEnd}
+                autoPlay={autoPlay}
+              >
+                <source src={streamData.video_url} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="relative w-full h-full">
+                <Image
+                  src={drama.thumbnail}
+                  alt={drama.title}
+                  fill
+                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <div className="bg-rose-600 hover:bg-rose-700 text-white rounded-full p-4 transition-colors cursor-pointer">
+                    <Play className="w-8 h-8" fill="white" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
         
         {/* Floating Back Button */}
         <Link 
           href={`/search?q=${encodeURIComponent(drama.title)}`}
-          className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/50 text-white p-2 rounded-lg transition-all hover:bg-zinc-800/80"
+          className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/50 text-white p-2 rounded-lg transition-all hover:bg-zinc-800/80 z-10"
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>
@@ -305,34 +411,31 @@ export function WatchClient({ drama, episodes }: WatchClientProps) {
         </h3>
         
         <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-3">
-          {episodes.map((ep: any) => {
-            const isCurrentEpisode = ep.id === currentEpisode;
-            const isUnlocked = userData?.unlocked_episodes?.includes(ep.id);
-            const isUnlocking = isUnlocking === ep.id;
+          {drama.episode_list?.map((episode) => {
+            const isCurrentEpisode = currentEpisode?.id === episode.id;
+            const isAccessible = isEpisodeAccessible(episode);
+            const isCurrentlyUnlocking = isUnlocking === episode.id;
             
             return (
               <button
-                key={ep.id}
-                onClick={() => handleEpisodeChange(ep.id, ep.episode)}
-                disabled={isUnlocking}
+                key={episode.id}
+                onClick={() => handleEpisodeChange(episode)}
+                disabled={isCurrentlyUnlocking}
                 className={`transition-all rounded-lg h-12 flex items-center justify-center font-medium text-sm relative ${
                   isCurrentEpisode
                     ? 'bg-rose-600 border-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'
-                    : isUnlocked
+                    : isAccessible
                     ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white'
-                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'
                 }`}
               >
-                {isUnlocking ? (
+                {isCurrentlyUnlocking ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
                   </div>
                 ) : (
                   <>
-                    {!isUnlocked && !isCurrentEpisode && (
-                      <Lock className="w-4 h-4" />
-                    )}
-                    <span>{ep.episode}</span>
+                    <span>{episode.episode}</span>
                     {isCurrentEpisode && (
                       <Play className="w-4 h-4" fill="white" />
                     )}

@@ -31,6 +31,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUserData: (updates: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -327,6 +328,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return unsubscribe;
   }, [firebaseModules]);
 
+  const updateUserData = (updates: Partial<UserProfile>) => {
+    if (userData) {
+      setUserData({ ...userData, ...updates });
+    }
+  };
+
   const value: AuthContextType = {
     user,
     userData,
@@ -335,6 +342,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithEmail,
     signUpWithEmail,
     signOut,
+    updateUserData,
   };
 
   return (
