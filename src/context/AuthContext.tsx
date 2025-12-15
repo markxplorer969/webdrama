@@ -6,14 +6,17 @@ import { toast } from 'sonner';
 // Types
 export type UserRole = 'admin' | 'user';
 
-export interface UserData {
+export interface UserProfile {
   uid: string;
-  email: string;
-  displayName: string;
-  role: UserRole;
+  email: string | null;
+  displayName: string | null;
+  photoURL?: string | null;
   credits: number;
-  isVip: boolean;
-  createdAt: any;
+  role?: string; // 'admin' | 'user'
+  isVip?: boolean;
+  unlocked_episodes: string[]; // Array of Episode IDs
+  history: string[]; // Array of Drama IDs
+  createdAt?: any;
   lastLogin?: any;
 }
 
@@ -22,7 +25,7 @@ type User = any;
 
 interface AuthContextType {
   user: User | null;
-  userData: UserData | null;
+  userData: UserProfile | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
@@ -71,7 +74,7 @@ const triggerDiscordWebhook = async (email: string, displayName: string, uid: st
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [firebaseModules, setFirebaseModules] = useState<any>(null);
 
@@ -111,40 +114,89 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadFirebase();
   }, []);
 
-  const fetchUserData = async (user: User): Promise<UserData | null> => {
+  const migrateUserDocument = async (user: User): Promise<UserProfile | null> => {
     if (!firebaseModules) return null;
     
     try {
-      const { getDoc, doc, updateDoc, serverTimestamp } = firebaseModules;
-      const userDoc = await getDoc(doc(firebaseModules.db, 'users', user.uid));
+      const { getDoc, updateDoc, serverTimestamp, doc } = firebaseModules;
+      const userRef = doc(firebaseModules.db, 'users', user.uid);
       
-      if (userDoc.exists()) {
-        const data = userDoc.data() as UserData;
-        // Update last login
-        await updateDoc(doc(firebaseModules.db, 'users', user.uid), {
+      // Fetch current document
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        // Create new user document
+        const newUserData: UserProfile = {
+          uid: user.uid,
+          email: user.email!,
+          displayName: user.displayName || user.email!.split('@')[0],
+          role: 'user',
+          credits: 0,
+          isVip: false,
+          photoURL: user.photoURL || null,
+          unlocked_episodes: [],
+          history: [],
+          createdAt: serverTimestamp(),
           lastLogin: serverTimestamp()
-        });
-        return { ...data, lastLogin: new Date() };
-      } else {
-        return null;
+        };
+
+        await updateDoc(userRef, newUserData);
+        return newUserData;
       }
+
+      const existingData = userDoc.data() as any;
+      
+      // Determine what needs to be updated
+      const updates: Partial<UserProfile> = {
+        lastLogin: serverTimestamp() // Always update last login
+      };
+
+      // Sync photoURL if different
+      if (user.photoURL && user.photoURL !== existingData.photoURL) {
+        updates.photoURL = user.photoURL;
+      }
+
+      // Initialize arrays if they don't exist
+      if (!existingData.unlocked_episodes) {
+        updates.unlocked_episodes = [];
+      }
+      
+      if (!existingData.history) {
+        updates.history = [];
+      }
+
+      // Only apply updates if there are changes
+      if (Object.keys(updates).length > 0) {
+        await updateDoc(userRef, updates, { merge: true });
+      }
+
+      // Return merged data
+      const mergedData: UserProfile = {
+        ...existingData,
+        ...updates
+      };
+
+      return mergedData;
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error migrating user document:', error);
       return null;
     }
   };
 
-  const createUserData = async (user: User, method: 'google' | 'email'): Promise<UserData> => {
+  const createUserData = async (user: User, method: 'google' | 'email'): Promise<UserProfile> => {
     if (!firebaseModules) throw new Error('Firebase not initialized');
     
     const { doc, setDoc, serverTimestamp } = firebaseModules;
-    const userData: UserData = {
+    const userData: UserProfile = {
       uid: user.uid,
       email: user.email!,
       displayName: user.displayName || user.email!.split('@')[0],
       role: 'user',
       credits: 0,
       isVip: false,
+      photoURL: user.photoURL || null,
+      unlocked_episodes: [],
+      history: [],
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp()
     };
@@ -166,16 +218,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Check if user document exists
-      const existingUserData = await fetchUserData(user);
+      // Migrate user document
+      const migratedUserData = await migrateUserDocument(user);
 
-      if (!existingUserData) {
-        // Create new user document and trigger webhook
-        const newUserData = await createUserData(user, 'google');
-        setUserData(newUserData);
-        toast.success('Account created successfully!');
+      if (migratedUserData) {
+        setUserData(migratedUserData);
+        toast.success('Account migrated successfully!');
       } else {
-        setUserData(existingUserData);
         toast.success('Signed in successfully!');
       }
 
@@ -197,16 +246,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Fetch user data
-      const existingUserData = await fetchUserData(user);
+      // Migrate user document
+      const migratedUserData = await migrateUserDocument(user);
       
-      if (existingUserData) {
-        setUserData(existingUserData);
-        setUser(user);
-        toast.success('Signed in successfully!');
+      if (migratedUserData) {
+        setUserData(migratedUserData);
+        toast.success('Account migrated successfully!');
       } else {
         toast.error('User account not found. Please sign up first.');
       }
+
+      setUser(user);
     } catch (error: any) {
       console.error('Email sign in error:', error);
       toast.error(error.message || 'Failed to sign in');
@@ -227,7 +277,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update profile with display name
       await updateProfile(user, { displayName });
 
-      // Create user document and trigger webhook
+      // Create and migrate user document
       const newUserData = await createUserData(user, 'email');
       
       setUserData(newUserData);
@@ -265,7 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(user);
       
       if (user) {
-        const data = await fetchUserData(user);
+        const data = await migrateUserDocument(user);
         setUserData(data);
       } else {
         setUserData(null);

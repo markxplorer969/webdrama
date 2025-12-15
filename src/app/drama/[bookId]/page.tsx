@@ -49,7 +49,7 @@ async function getDramaDetail(bookId: string): Promise<DramaDetail | null> {
   }
 }
 
-export default function DramaDetailPage({ params }: DramaDetailPageProps) {
+export default async function DramaDetailPage({ params }: DramaDetailPageProps) {
   const drama = await getDramaDetail(params.bookId);
 
   if (!drama) {

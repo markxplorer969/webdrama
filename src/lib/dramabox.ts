@@ -42,8 +42,23 @@ const getBookIdFromUrl = (url) => {
 const extractNumber = (text: string) => {
     if (!text) return '0';
     // Extract numbers from text (handles formats like "1.2M views", "📺 90 Ep", etc.)
-    const match = text.match(/\d+\.?\d*/);
-    return match ? match[0] : '0';
+    const match = text.match(/(\d+\.?\d*)\s*([KMGT]?)/i);
+    if (match) {
+        const number = parseFloat(match[1]);
+        const suffix = match[2]?.toUpperCase();
+        
+        if (suffix === 'K') return `${(number / 1).toFixed(1)}K`;
+        if (suffix === 'M') return `${(number / 1).toFixed(1)}M`;
+        if (suffix === 'G') return `${(number / 1).toFixed(1)}G`;
+        if (suffix === 'T') return `${(number / 1).toFixed(1)}T`;
+        
+        // If no suffix but number is large, format it
+        if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
+        if (number >= 1000) return `${(number / 1000).toFixed(1)}K`;
+        
+        return number.toString();
+    }
+    return '0';
 };
 
 const extractEpisodes = (text: string) => {
@@ -129,10 +144,14 @@ export const dramabox = {
         const results = [];
         $('.drama-grid .drama-card').each((_, el) => {
             const link = resolveUrl($(el).find('.watch-button').attr('href'));
+            const viewsText = $(el).find('.drama-meta span').first().text().trim();
+            const episodesText = $(el).find('.drama-meta span[itemprop="numberOfEpisodes"]').text().trim();
+            
             results.push({
                 title: $(el).find('.drama-title').text().trim(),
                 book_id: getBookIdFromUrl(link),
-                views: $(el).find('.drama-meta span').first().text().trim().split(' ')[1],
+                views: extractNumber(viewsText),
+                episodes: extractEpisodes(episodesText),
                 image: $(el).find('.drama-image img').attr('src')
             });
         });

@@ -65,15 +65,25 @@ async function SearchResults({ query }: { query: string }) {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {results.map((drama, index) => (
-        <DramaCard 
-          key={`${drama.book_id}-${index}`}
-          drama={drama}
-          index={index}
-        />
-      ))}
-    </div>
+    <>
+      {/* Results Count */}
+      <div className="mb-6 text-center">
+        <p className="text-zinc-400 text-sm">
+          Found <span className="text-white font-semibold">{results.length}</span> results for "{query}"
+        </p>
+      </div>
+      
+      {/* Results Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {results.map((drama, index) => (
+          <DramaCard 
+            key={`${drama.book_id}-${index}`}
+            drama={drama}
+            index={index}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 

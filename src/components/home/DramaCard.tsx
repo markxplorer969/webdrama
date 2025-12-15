@@ -23,8 +23,8 @@ interface DramaCardProps {
 
 export const DramaCard: React.FC<DramaCardProps> = ({ drama, index = 0 }) => {
   return (
-    <Link href={`/drama/${drama.book_id}`}>
-      <div className="group cursor-pointer overflow-hidden rounded-lg transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-rose-500">
+    <Link href={`/watch/${drama.book_id}`}>
+      <div className="group cursor-pointer overflow-hidden rounded-lg transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-rose-500 bg-zinc-900">
         {/* Poster Image */}
         <div className="relative aspect-[3/4]">
           <Image
@@ -36,7 +36,7 @@ export const DramaCard: React.FC<DramaCardProps> = ({ drama, index = 0 }) => {
           />
           
           {/* Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
           {/* Status Badge */}
           {drama.status && (
@@ -54,23 +54,23 @@ export const DramaCard: React.FC<DramaCardProps> = ({ drama, index = 0 }) => {
         </div>
         
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+        <div className="p-3">
           <h3 className="text-white font-semibold text-sm line-clamp-2 mb-2">
             {drama.title}
           </h3>
           
-          <div className="flex items-center gap-3 text-zinc-300 text-xs">
+          <div className="flex items-center justify-between text-zinc-300 text-xs">
             {drama.views && (
               <span className="flex items-center gap-1">
                 <Eye className="w-3 h-3" />
-                {drama.views}
+                {drama.views.includes('K') || drama.views.includes('M') ? drama.views : `${drama.views} views`}
               </span>
             )}
             
             {drama.episodes && (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 bg-zinc-800 px-2 py-1 rounded">
                 <Film className="w-3 h-3" />
-                <span>{drama.episodes} episodes</span>
+                <span>{drama.episodes} Ep</span>
               </span>
             )}
           </div>
@@ -90,6 +90,14 @@ export const DramaCard: React.FC<DramaCardProps> = ({ drama, index = 0 }) => {
               )}
             </div>
           )}
+          
+          {/* Watch Now CTA */}
+          <div className="mt-3">
+            <button className="w-full bg-rose-500 hover:bg-rose-600 text-white text-xs font-medium py-2 px-3 rounded transition-colors duration-200 flex items-center justify-center gap-1 group-hover:bg-rose-600">
+              <Play className="w-3 h-3" fill="white" />
+              Watch Now
+            </button>
+          </div>
         </div>
       </div>
     </Link>
