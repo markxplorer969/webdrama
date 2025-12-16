@@ -67,13 +67,13 @@ export const SearchCommand: React.FC<SearchCommandProps> = ({ open, onOpenChange
         <Button
           variant="ghost"
           size="sm"
-          className="text-zinc-300 hover:text-white"
+          className="text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors"
         >
           <Search className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl bg-zinc-900/95 backdrop-blur-md border border-zinc-800">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-white">Search Dramas</DialogTitle>
           <DialogDescription className="text-sm text-zinc-300">
@@ -95,7 +95,7 @@ export const SearchCommand: React.FC<SearchCommandProps> = ({ open, onOpenChange
             />
             <Button
               size="sm"
-              className="bg-rose-500 hover:bg-rose-600"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors"
               onClick={() => {
                 if (inputValue.trim()) {
                   onOpenChange(false);
@@ -133,7 +133,7 @@ export const SearchCommand: React.FC<SearchCommandProps> = ({ open, onOpenChange
                       key={term}
                       variant="outline"
                       size="sm"
-                      className="text-xs bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+                      className="text-xs bg-zinc-800/50 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
                       onClick={() => {
                         onOpenChange(false);
                         router.push(`/search?q=${encodeURIComponent(term)}`);

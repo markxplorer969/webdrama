@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch drama details
-    const detail = await dramabox.detail(bookId.trim());
+    // Fetch drama details with timeout
+    const detailPromise = dramabox.detail(bookId.trim());
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 25000)
+    );
+
+    const detail = await Promise.race([detailPromise, timeoutPromise]);
 
     return NextResponse.json({
       success: true,
@@ -30,13 +35,14 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Detail API error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch drama details',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    
+    // Return fallback data on error
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch drama details',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
+      bookId: bookId?.trim() || ''
+    }, { status: 200 }); // Return 200 with error info instead of 500
   }
 }

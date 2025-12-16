@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch search results
-    const results = await dramabox.search(query.trim());
+    // Fetch search results with timeout
+    const searchPromise = dramabox.search(query.trim());
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 25000)
+    );
+
+    const results = await Promise.race([searchPromise, timeoutPromise]);
 
     return NextResponse.json({
       success: true,
@@ -31,13 +36,15 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Search API error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to search dramas',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    
+    // Return fallback data on error
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to search dramas',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      query: query?.trim() || '',
+      data: [],
+      count: 0
+    }, { status: 200 }); // Return 200 with error info instead of 500
   }
 }

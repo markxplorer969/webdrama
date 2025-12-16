@@ -54,33 +54,69 @@ interface WatchClientProps {
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-zinc-950 pt-20">
-      {/* Video Player Skeleton */}
-      <div className="w-full aspect-video bg-black relative animate-pulse">
-        <div className="absolute inset-0 bg-zinc-800/20" />
-      </div>
+      <div className="max-w-[1600px] mx-auto p-4 lg:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          
+          {/* Left Column - Video Player Skeleton (2/3 width) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Video Player Skeleton */}
+            <div className="relative aspect-video bg-black rounded-xl animate-pulse">
+              <div className="absolute inset-0 bg-zinc-800/20" />
+            </div>
 
-      {/* Info Section Skeleton */}
-      <div className="px-4 py-6 md:px-0 max-w-5xl mx-auto">
-        <div className="flex items-start gap-6">
-          <div className="w-24 h-32 bg-zinc-800 rounded-lg animate-pulse" />
-          <div className="flex-1 space-y-4">
-            <div className="h-8 bg-zinc-800 rounded w-3/4 animate-pulse" />
-            <div className="h-4 bg-zinc-800 rounded w-full animate-pulse" />
-            <div className="flex gap-6">
-              <div className="h-4 bg-zinc-800 rounded w-20 animate-pulse" />
-              <div className="h-4 bg-zinc-800 rounded w-20 animate-pulse" />
+            {/* Drama Info Skeleton */}
+            <div className="space-y-6">
+              <div className="h-8 lg:h-10 bg-zinc-800 rounded w-3/4 animate-pulse" />
+              <div className="flex gap-4 lg:gap-6">
+                <div className="h-4 lg:h-5 bg-zinc-800 rounded w-20 lg:w-24 animate-pulse" />
+                <div className="h-4 lg:h-5 bg-zinc-800 rounded w-20 lg:w-24 animate-pulse" />
+                <div className="h-4 lg:h-5 bg-zinc-800 rounded w-16 lg:w-20 animate-pulse" />
+              </div>
+              <div className="h-16 lg:h-20 bg-zinc-800 rounded animate-pulse" />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Episode Grid Skeleton */}
-      <div className="mt-8 max-w-5xl mx-auto px-4 md:px-0">
-        <div className="h-6 bg-zinc-800 rounded w-32 animate-pulse mb-4" />
-        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-3">
-          {Array.from({ length: 24 }).map((_, i) => (
-            <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-lg h-12 animate-pulse" />
-          ))}
+          {/* Right Column - Episode List Skeleton (1/3 width) */}
+          <div className="lg:col-span-1">
+            <div className="lg:sticky lg:top-6">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 lg:p-6 backdrop-blur-sm">
+                {/* Header Skeleton */}
+                <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                  <div className="w-4 h-4 lg:w-5 lg:h-5 bg-zinc-800 rounded animate-pulse" />
+                  <div className="h-5 lg:h-6 bg-zinc-800 rounded w-24 lg:w-32 animate-pulse" />
+                </div>
+
+                {/* Current Episode Info Skeleton */}
+                <div className="mb-4 lg:mb-6 p-3 lg:p-4 bg-zinc-800/50 rounded-lg border border-zinc-700 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="h-4 lg:h-5 bg-zinc-700 rounded w-16 lg:w-20 animate-pulse" />
+                      <div className="h-3 lg:h-4 bg-zinc-600 rounded w-20 lg:w-24 animate-pulse" />
+                    </div>
+                    <div className="w-4 h-4 bg-zinc-700 rounded animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Episode Grid Skeleton */}
+                <div className="grid gap-2 lg:gap-3 grid-cols-4 sm:grid-cols-5 lg:grid-cols-3">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-lg h-10 lg:h-12 animate-pulse" />
+                  ))}
+                </div>
+
+                {/* Navigation Skeleton */}
+                <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 lg:h-4 bg-zinc-700 rounded w-20 lg:w-24 animate-pulse" />
+                    <div className="flex gap-2">
+                      <div className="h-6 lg:h-8 bg-zinc-800 rounded w-16 lg:w-20 animate-pulse" />
+                      <div className="h-6 lg:h-8 bg-rose-600 rounded w-12 lg:w-16 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -292,158 +328,219 @@ export default function WatchClient({ drama, initialEpisode }: WatchClientProps)
 
   return (
     <div className="min-h-screen bg-zinc-950 pt-20">
-      {/* CRITICAL FIX: Video Player Area with proper key handling */}
-      <div className="relative w-full aspect-video bg-black shadow-2xl">
-        {currentEpisode && (
-          <>
-            {streamData?.video_url ? (
-              <video
-                ref={videoRef}
-                // THE SECRET SAUCE: Key prop forces React to destroy and recreate video element
-                key={currentEpisode.id}
-                controls
-                className="w-full h-full"
-                preload="metadata"
-                poster={drama.thumbnail}
-                onEnded={handleVideoEnd}
-                autoPlay={autoPlay}
+      <div className="max-w-[1600px] mx-auto p-4 lg:p-6">
+        {/* Desktop Layout: Video Kiri, Episode Kanan */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          
+          {/* Left Column - Video Player & Info (2/3 width on desktop) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Video Player */}
+            <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+              {currentEpisode && (
+                <>
+                  {streamData?.video_url ? (
+                    <video
+                      ref={videoRef}
+                      key={currentEpisode.id}
+                      controls
+                      className="w-full h-full"
+                      preload="metadata"
+                      poster={drama.thumbnail}
+                      onEnded={handleVideoEnd}
+                      autoPlay={autoPlay}
+                    >
+                      <source src={streamData.video_url} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={drama.thumbnail}
+                        alt={drama.title}
+                        fill
+                        className="object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="bg-rose-600 hover:bg-rose-700 text-white rounded-full p-4 transition-colors cursor-pointer">
+                          <Play className="w-8 h-8" fill="white" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Floating Back Button */}
+              <Link 
+                href={`/search?q=${encodeURIComponent(drama.title)}`}
+                className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/50 text-white p-2 rounded-lg transition-all hover:bg-zinc-800/80 z-10"
               >
-                <source src={streamData.video_url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            ) : (
-              <div className="relative w-full h-full">
-                <Image
-                  src={drama.thumbnail}
-                  alt={drama.title}
-                  fill
-                  className="object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <div className="bg-rose-600 hover:bg-rose-700 text-white rounded-full p-4 transition-colors cursor-pointer">
-                    <Play className="w-8 h-8" fill="white" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        
-        {/* Floating Back Button */}
-        <Link 
-          href={`/search?q=${encodeURIComponent(drama.title)}`}
-          className="absolute top-4 left-4 bg-zinc-900/80 backdrop-blur-sm border border-zinc-800/50 text-white p-2 rounded-lg transition-all hover:bg-zinc-800/80 z-10"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Link>
-      </div>
-
-      {/* Info Section */}
-      <div className="px-4 py-6 md:px-0 max-w-5xl mx-auto">
-        <div className="flex items-start gap-6">
-          {/* Thumbnail */}
-          <div className="flex-shrink-0">
-            <div className="relative w-24 h-32 rounded-lg overflow-hidden">
-              <Image
-                src={drama.thumbnail}
-                alt={drama.title}
-                fill
-                className="object-cover"
-                referrerPolicy="no-referrer"
-              />
+                <ChevronLeft className="w-5 h-5" />
+              </Link>
             </div>
-          </div>
 
-          {/* Info */}
-          <div className="flex-1 space-y-4">
-            {/* Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">{drama.title}</h1>
-            
-            {/* Meta Row */}
-            <div className="flex items-center gap-6 text-zinc-400 text-sm mb-4">
-              <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4 text-rose-500" />
-                <span>{drama.stats?.followers || '0'} Likes</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <List className="w-4 h-4 text-blue-500" />
-                <span>{drama.episode_list?.length || '0'} Episodes</span>
-              </div>
-              {userData && (
+            {/* Drama Info Section */}
+            <div className="space-y-6">
+              {/* Title */}
+              <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight">
+                {drama.title}
+              </h1>
+              
+              {/* Metadata */}
+              <div className="flex flex-wrap items-center gap-4 lg:gap-6 text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <span className="text-rose-500 font-bold">{userData.credits}</span>
-                  <span className="text-zinc-400"> Credits</span>
+                  <Heart className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500" />
+                  <span className="font-medium text-sm lg:text-base">{drama.stats?.followers || '0'} Likes</span>
                 </div>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className="border-l-2 border-rose-600/50 pl-4">
-              <p className="text-zinc-300 text-sm leading-relaxed">
-                {drama.description || 'No description available.'}
-              </p>
-            </div>
-
-            {/* Additional Meta */}
-            <div className="flex items-center gap-6 text-zinc-400 text-sm">
-              {drama.upload_date && (
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{new Date(drama.upload_date).toLocaleDateString()}</span>
+                  <List className="w-4 h-4 lg:w-5 lg:h-5 text-blue-500" />
+                  <span className="font-medium text-sm lg:text-base">{drama.episode_list?.length || '0'} Episodes</span>
                 </div>
-              )}
-              {drama.status && (
-                <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 border-zinc-700">
-                  {drama.status}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Episode Grid */}
-      <div className="mt-8 max-w-5xl mx-auto px-4 md:px-0">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <LayoutGrid className="w-5 h-5 text-rose-500" />
-          Select Episode
-        </h3>
-        
-        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-3">
-          {drama.episode_list?.map((episode) => {
-            const isCurrentEpisode = currentEpisode?.id === episode.id;
-            const isAccessible = isEpisodeAccessible(episode);
-            const isCurrentlyUnlocking = isUnlocking === episode.id;
-            
-            return (
-              <button
-                key={episode.id}
-                onClick={() => handleEpisodeChange(episode)}
-                disabled={isCurrentlyUnlocking}
-                className={`transition-all rounded-lg h-12 flex items-center justify-center font-medium text-sm relative ${
-                  isCurrentEpisode
-                    ? 'bg-rose-600 border-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'
-                    : isAccessible
-                    ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white'
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'
-                }`}
-              >
-                {isCurrentlyUnlocking ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                {drama.upload_date && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 lg:w-5 lg:h-5 text-zinc-400" />
+                    <span className="font-medium text-sm lg:text-base">{new Date(drama.upload_date).toLocaleDateString()}</span>
                   </div>
-                ) : (
-                  <>
-                    <span>{episode.episode}</span>
-                    {isCurrentEpisode && (
-                      <Play className="w-4 h-4" fill="white" />
-                    )}
-                  </>
                 )}
-              </button>
-            );
-          })}
+                {userData && (
+                  <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">
+                    <span className="text-rose-400 font-bold text-sm">{userData.credits}</span>
+                    <span className="text-zinc-400 text-sm">Credits</span>
+                  </div>
+                )}
+                {drama.status && (
+                  <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 border-zinc-700 text-xs">
+                    {drama.status}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="prose prose-invert max-w-none">
+                <p className="text-zinc-300 text-sm lg:text-base leading-relaxed">
+                  {drama.description || 'No description available.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Episode List (1/3 width on desktop) */}
+          <div className="lg:col-span-1">
+            {/* Sticky Episode Container */}
+            <div className="lg:sticky lg:top-6">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 lg:p-6 backdrop-blur-sm">
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-4 lg:mb-6">
+                  <LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5 text-rose-500" />
+                  <h3 className="text-base lg:text-lg font-semibold text-white">
+                    Select Episode
+                  </h3>
+                  <span className="text-zinc-500 text-xs lg:text-sm">
+                    ({drama.episode_list?.length || '0'} episodes)
+                  </span>
+                </div>
+
+                {/* Current Episode Info */}
+                {currentEpisode && (
+                  <div className="mb-4 lg:mb-6 p-3 lg:p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-white font-medium text-sm lg:text-base">
+                          Episode {currentEpisode.episode}
+                        </div>
+                        <div className="text-zinc-400 text-xs lg:text-sm">
+                          Currently Playing
+                        </div>
+                      </div>
+                      <Play className="w-4 h-4 text-rose-500" fill="currentColor" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Episode Grid */}
+                <div className={`
+                  grid gap-2 lg:gap-3
+                  ${drama.episode_list?.length > 50 ? 'max-h-[400px] lg:max-h-[500px] overflow-y-auto custom-scrollbar pr-2' : ''}
+                  grid-cols-4 sm:grid-cols-5 lg:grid-cols-3
+                `}>
+                  {drama.episode_list?.map((episode) => {
+                    const isCurrentEpisode = currentEpisode?.id === episode.id;
+                    const isAccessible = isEpisodeAccessible(episode);
+                    const isCurrentlyUnlocking = isUnlocking === episode.id;
+                    
+                    return (
+                      <button
+                        key={episode.id}
+                        onClick={() => handleEpisodeChange(episode)}
+                        disabled={isCurrentlyUnlocking}
+                        className={`
+                          transition-all rounded-lg h-10 lg:h-12 flex items-center justify-center font-medium text-xs lg:text-sm relative
+                          ${isCurrentEpisode
+                            ? 'bg-rose-600 border-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-2 ring-rose-600/50'
+                            : isAccessible
+                            ? 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600 hover:text-white hover:bg-zinc-700/50'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-400'
+                          }
+                          ${isCurrentlyUnlocking ? 'cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                      >
+                        {isCurrentlyUnlocking ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                            <Loader2 className="w-3 h-3 lg:w-4 lg:h-4 animate-spin text-white" />
+                          </div>
+                        ) : (
+                          <>
+                            <span>{episode.episode}</span>
+                            {isCurrentEpisode && (
+                              <Play className="w-3 h-3 lg:w-4 lg:h-4" fill="white" />
+                            )}
+                          </>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Episode Navigation */}
+                {drama.episode_list && drama.episode_list.length > 1 && (
+                  <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t border-zinc-800">
+                    <div className="flex items-center justify-between text-xs lg:text-sm text-zinc-500">
+                      <span>Episode {currentEpisode?.episode || 1} of {drama.episode_list.length}</span>
+                      <div className="flex gap-2">
+                        {currentEpisode && currentEpisode.episode > 1 && (
+                          <button
+                            onClick={() => {
+                              const prevIndex = drama.episode_list.findIndex(ep => ep.id === currentEpisode.id);
+                              if (prevIndex > 0) {
+                                handleEpisodeChange(drama.episode_list[prevIndex - 1]);
+                              }
+                            }}
+                            className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors"
+                          >
+                            Previous
+                          </button>
+                        )}
+                        {currentEpisode && currentEpisode.episode < drama.episode_list.length && (
+                          <button
+                            onClick={() => {
+                              const nextIndex = drama.episode_list.findIndex(ep => ep.id === currentEpisode.id);
+                              if (nextIndex < drama.episode_list.length - 1) {
+                                handleEpisodeChange(drama.episode_list[nextIndex + 1]);
+                              }
+                            }}
+                            className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors"
+                          >
+                            Next
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

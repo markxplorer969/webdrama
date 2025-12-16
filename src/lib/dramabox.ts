@@ -6,19 +6,30 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { apiCache } from './cache';
 
 const CONFIG = {
     BASE_URL: 'https://dramabox.web.id',
     HEADERS: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    },
+    TIMEOUT: 30000 // 30 seconds timeout
 };
 
 const request = async (url) => {
     try {
-        const response = await axios.get(url, { headers: CONFIG.HEADERS });
+        const response = await axios.get(url, { 
+            headers: CONFIG.HEADERS,
+            timeout: CONFIG.TIMEOUT
+        });
         return cheerio.load(response.data);
     } catch (error) {
+        if (error.code === 'ECONNABORTED') {
+            throw new Error(`Request timeout after ${CONFIG.TIMEOUT/1000} seconds`);
+        }
+        if (error.response) {
+            throw new Error(`HTTP Error ${error.response.status}: ${error.response.statusText}`);
+        }
         throw new Error(`Network Error: ${error.message}`);
     }
 };
@@ -79,6 +90,10 @@ const extractEpisodes = (text: string) => {
 
 export const dramabox = {
     home: async () => {
+        const cacheKey = 'dramabox_home';
+        const cached = apiCache.get(cacheKey);
+        if (cached) return cached;
+
         const $ = await request(CONFIG.BASE_URL);
         const latest = [];
         $('.drama-grid .drama-card').each((_, el) => {
@@ -112,10 +127,16 @@ export const dramabox = {
             });
         });
 
-        return { latest, trending };
+        const result = { latest, trending };
+        apiCache.set(cacheKey, result, 10 * 60 * 1000); // Cache for 10 minutes
+        return result;
     },
 
     latest: async (page: number = 1) => {
+        const cacheKey = `dramabox_latest_${page}`;
+        const cached = apiCache.get(cacheKey);
+        if (cached) return cached;
+
         const targetUrl = `${CONFIG.BASE_URL}/index.php?page=${page}&lang=in`;
         const $ = await request(targetUrl);
         const latest = [];
@@ -134,10 +155,15 @@ export const dramabox = {
             });
         });
 
+        apiCache.set(cacheKey, latest, 15 * 60 * 1000); // Cache for 15 minutes
         return latest;
     },
 
     search: async (query) => {
+        const cacheKey = `dramabox_search_${query.toLowerCase()}`;
+        const cached = apiCache.get(cacheKey);
+        if (cached) return cached;
+
         const targetUrl = `${CONFIG.BASE_URL}/search.php?lang=in&q=${encodeURIComponent(query)}`;
         const $ = await request(targetUrl);
 
@@ -156,11 +182,16 @@ export const dramabox = {
             });
         });
 
+        apiCache.set(cacheKey, results, 20 * 60 * 1000); // Cache for 20 minutes
         return results;
     },
 
     detail: async (bookId) => {
         if (!bookId) throw new Error("Book ID is required");
+        
+        const cacheKey = `dramabox_detail_${bookId}`;
+        const cached = apiCache.get(cacheKey);
+        if (cached) return cached;
 
         const targetUrl = `${CONFIG.BASE_URL}/watch.php?bookId=${bookId}&lang=in`;
         const $ = await request(targetUrl);
@@ -196,7 +227,7 @@ export const dramabox = {
           console.log('Status not found, continuing...');
         }
 
-        return {
+        const result = {
             book_id: bookId,
             title: cleanTitle,
             description: $('.video-description').text().trim(),
@@ -210,6 +241,9 @@ export const dramabox = {
             genres: genres,
             status: status
         };
+
+        apiCache.set(cacheKey, result, 30 * 60 * 1000); // Cache for 30 minutes
+        return result;
     },
 
     stream: async (bookId, episode) => {

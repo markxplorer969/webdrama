@@ -16,8 +16,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch latest dramas for the requested page
-    const latest = await dramabox.latest(page);
+    // Fetch latest dramas for the requested page with timeout
+    const latestPromise = dramabox.latest(page);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 25000)
+    );
+
+    const latest = await Promise.race([latestPromise, timeoutPromise]);
 
     return NextResponse.json({
       success: true,
@@ -28,13 +33,15 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Latest API error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch latest dramas',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    
+    // Return fallback data on error
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch latest dramas',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: [],
+      page: 1,
+      hasMore: false
+    }, { status: 200 }); // Return 200 with error info instead of 500
   }
 }

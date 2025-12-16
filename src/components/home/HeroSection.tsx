@@ -41,7 +41,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
     if (rankNum === 2) {
       return {
         icon: Medal,
-        className: 'bg-gray-400 text-white',
+        className: 'bg-zinc-400 text-white',
         text: 'TOP 2'
       };
     }
@@ -66,7 +66,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
       { className: 'lg:col-span-2 relative group cursor-pointer overflow-hidden rounded-xl' },
       React.createElement(
         Link,
-        { href: `/watch?bookId=${hero.book_id}` },
+        { href: `/watch/${hero.book_id}` },
         React.createElement(
           'div',
           { className: 'relative aspect-video lg:aspect-[2/1]' },
@@ -112,7 +112,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
             ),
             React.createElement(
               'button',
-              { className: 'bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors' },
+              { className: 'bg-rose-600 hover:bg-rose-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors' },
               React.createElement(Play, { className: 'w-5 h-5' }),
               'Watch Now'
             )
@@ -132,7 +132,7 @@ export const HeroSection: React.FC<HeroSectionProps> = (props) => {
         
         return React.createElement(
           Link,
-          { key: item.rank, href: `/watch?bookId=${item.book_id}` },
+          { key: item.rank, href: `/watch/${item.book_id}` },
           React.createElement(
             'div',
             { className: 'relative group cursor-pointer overflow-hidden rounded-lg' },

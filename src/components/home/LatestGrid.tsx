@@ -123,7 +123,7 @@ export const LatestGrid: React.FC<LatestGridProps> = ({ latest: initialData }) =
       
       <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {items.map((item, index) => (
-          <Link key={`${item.book_id}-${page}-${index}`} href={`/watch?bookId=${item.book_id}`}>
+          <Link key={`${item.book_id}-${page}-${index}`} href={`/watch/${item.book_id}`}>
             <div className="relative group cursor-pointer overflow-hidden rounded-lg transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-rose-500">
               {/* Poster Image */}
               <div className="relative aspect-[3/4]">

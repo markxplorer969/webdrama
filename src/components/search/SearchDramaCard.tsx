@@ -54,7 +54,7 @@ export const SearchDramaCard: React.FC<SearchDramaCardProps> = ({ drama, index =
     <div className="flex flex-col h-full bg-zinc-900 rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-rose-500">
       {/* Poster Image */}
       <div className="relative aspect-[2/3] overflow-hidden">
-        <Link href={`/drama/${drama.book_id}`}>
+        <Link href={`/watch/${drama.book_id}`}>
           <Image
             src={drama.image}
             alt={drama.title}
@@ -75,7 +75,7 @@ export const SearchDramaCard: React.FC<SearchDramaCardProps> = ({ drama, index =
         )}
         
         {/* Play Button Overlay */}
-        <Link href={`/drama/${drama.book_id}`}>
+        <Link href={`/watch/${drama.book_id}`}>
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="bg-rose-500/90 backdrop-blur-sm rounded-full p-4">
               <Play className="w-6 h-6 text-white" fill="white" />
@@ -88,7 +88,7 @@ export const SearchDramaCard: React.FC<SearchDramaCardProps> = ({ drama, index =
       <div className="flex flex-col flex-1 p-4 space-y-3">
         {/* Title Section */}
         <div>
-          <Link href={`/drama/${drama.book_id}`}>
+          <Link href={`/watch/${drama.book_id}`}>
             <h3 className="text-white font-semibold text-sm line-clamp-2 leading-tight hover:text-rose-400 transition-colors">
               {drama.title}
             </h3>
@@ -126,7 +126,7 @@ export const SearchDramaCard: React.FC<SearchDramaCardProps> = ({ drama, index =
         
         {/* CTA Button - mt-auto to stick to bottom */}
         <div className="mt-auto">
-          <Link href={`/drama/${drama.book_id}`}>
+          <Link href={`/watch/${drama.book_id}`}>
             <button className="w-full bg-rose-500 hover:bg-rose-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2">
               <Play className="w-4 h-4" fill="white" />
               Nonton Sekarang

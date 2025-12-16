@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Navbar } from '@/components/Navbar';
 import { DramaCard } from '@/components/home/DramaCard';
 
 interface SearchPageProps {
@@ -93,9 +92,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <>
-      <Navbar />
-      
-      <main className="min-h-screen bg-zinc-950 pt-20">
+      <main className="min-h-screen bg-zinc-950 pt-8">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">

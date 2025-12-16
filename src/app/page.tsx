@@ -1,6 +1,5 @@
 'use client';
 
-import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/home/HeroSection';
 import { TrendingScroll } from '@/components/home/TrendingScroll';
 import { LatestGrid } from '@/components/home/LatestGrid';
@@ -43,8 +42,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <Navbar />
-      
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section - Top 3 Trending */}
         <HeroSection trending={data?.trending || []} />
@@ -55,16 +52,6 @@ export default function Home() {
         {/* Latest Episodes Grid */}
         <LatestGrid latest={data?.latest || []} />
       </main>
-      
-      {/* Footer */}
-      <footer className="border-t border-zinc-800 mt-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-zinc-400 text-sm">
-            <p>&copy; 2024 Dramaflex. All rights reserved.</p>
-            <p className="mt-2">Stream your favorite dramas anytime, anywhere.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

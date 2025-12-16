@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { RedeemModal } from '@/components/wallet/RedeemModal';
 import { SearchCommand } from '@/components/search/SearchCommand';
+import { siteConfig, navigation } from '@/config/site';
 import { 
   Search, 
   Menu, 
@@ -47,14 +48,14 @@ export const Navbar: React.FC = () => {
 
   if (loading) {
     return (
-      <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-4xl">
-        <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50">
+      <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl">
+        <div className="bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-full shadow-lg">
           <div className="flex items-center justify-between px-6 py-3">
             <div className="flex items-center space-x-4">
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-24 bg-zinc-800/50" />
+              <Skeleton className="h-6 w-24 bg-zinc-800/50" />
             </div>
-            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-24 bg-zinc-800/50" />
           </div>
         </div>
       </nav>
@@ -64,12 +65,12 @@ export const Navbar: React.FC = () => {
   return (
     <>
       {/* Floating Navbar */}
-      <nav className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-4xl">
-        <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50">
+      <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl">
+        <div className="bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-full shadow-lg">
           <div className="flex items-center justify-between px-6 py-3">
             
             {/* Left - Brand */}
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href={navigation.home} className="flex items-center space-x-2">
               <h1 className="text-xl font-bold tracking-tighter">
                 <span className="text-white">Drama</span>
                 <span className="text-rose-500">Flex</span>
@@ -79,22 +80,28 @@ export const Navbar: React.FC = () => {
             {/* Center - Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
               <Link 
-                href="/" 
+                href={navigation.home} 
                 className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
               >
                 Home
               </Link>
               <Link 
-                href="/trending" 
+                href={navigation.trending} 
                 className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
               >
                 Trending
               </Link>
               <Link 
-                href="/series" 
+                href={navigation.series} 
                 className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
               >
                 Series
+              </Link>
+              <Link 
+                href={navigation.search} 
+                className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
+              >
+                Search
               </Link>
             </div>
 
@@ -113,7 +120,7 @@ export const Navbar: React.FC = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsRedeemModalOpen(true)}
-                  className="flex items-center space-x-2 text-amber-400 hover:text-amber-300"
+                  className="flex items-center space-x-2 text-amber-400 hover:text-amber-300 hover:bg-zinc-800/50 transition-colors"
                 >
                   <Wallet className="h-4 w-4" />
                   <span className="font-medium">{formatNumber(userData?.credits || 0)}</span>
@@ -126,7 +133,7 @@ export const Navbar: React.FC = () => {
                   onClick={() => setIsAuthModalOpen(true)}
                   variant="default"
                   size="sm"
-                  className="bg-rose-500 hover:bg-rose-600"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors"
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Login</span>
@@ -137,7 +144,7 @@ export const Navbar: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="relative h-9 w-9 rounded-full"
+                      className="relative h-9 w-9 rounded-full hover:bg-zinc-800/50 transition-colors"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage 
@@ -153,10 +160,10 @@ export const Navbar: React.FC = () => {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
+                  <DropdownMenuContent className="w-56 bg-zinc-900/95 backdrop-blur-md border border-zinc-800" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal text-zinc-100">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">
+                        <p className="text-sm font-medium leading-none text-white">
                           {userData?.displayName || user.displayName || 'User'}
                         </p>
                         <p className="text-xs leading-none text-zinc-400">
@@ -167,28 +174,28 @@ export const Navbar: React.FC = () => {
                     <DropdownMenuSeparator />
                     
                     {/* User Info Items */}
-                    <DropdownMenuItem className="flex items-center justify-between" disabled>
+                    <DropdownMenuItem className="flex items-center justify-between text-zinc-300 focus:text-white focus:bg-zinc-800" disabled>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" />
                         <span>Role</span>
                       </div>
-                      <span className="text-sm font-medium capitalize">
+                      <span className="text-sm font-medium capitalize text-zinc-400">
                         {userData?.role || 'user'}
                       </span>
                     </DropdownMenuItem>
                     
-                    <DropdownMenuItem className="flex items-center justify-between" disabled>
+                    <DropdownMenuItem className="flex items-center justify-between text-zinc-300 focus:text-white focus:bg-zinc-800" disabled>
                       <div className="flex items-center space-x-2">
                         <Wallet className="h-4 w-4" />
                         <span>Credits</span>
                       </div>
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium text-amber-400">
                         {formatNumber(userData?.credits || 0)}
                       </span>
                     </DropdownMenuItem>
                     
                     {userData?.isVip && (
-                      <DropdownMenuItem className="flex items-center justify-between" disabled>
+                      <DropdownMenuItem className="flex items-center justify-between text-zinc-300 focus:text-white focus:bg-zinc-800" disabled>
                         <div className="flex items-center space-x-2">
                           <Crown className="h-4 w-4 text-yellow-500" />
                           <span>Status</span>
@@ -203,7 +210,7 @@ export const Navbar: React.FC = () => {
                     
                     {/* Sign Out */}
                     <DropdownMenuItem 
-                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                      className="text-red-400 focus:text-red-300 focus:bg-zinc-800 cursor-pointer"
                       onClick={signOut}
                     >
                       <div className="flex items-center space-x-2">
@@ -220,7 +227,7 @@ export const Navbar: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden text-zinc-300 hover:text-white"
+                className="md:hidden text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors"
               >
                 <Menu className="h-5 w-5" />
               </Button>
@@ -233,7 +240,7 @@ export const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="fixed right-0 top-0 h-full w-64 bg-black/90 backdrop-blur-xl border-l border-white/10">
+          <div className="fixed right-0 top-0 h-full w-64 bg-zinc-950/95 backdrop-blur-md border-l border-zinc-800">
             <div className="flex flex-col h-full p-4">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-white">Menu</h2>
@@ -241,7 +248,7 @@ export const Navbar: React.FC = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-zinc-400 hover:text-white"
+                  className="text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -249,25 +256,32 @@ export const Navbar: React.FC = () => {
               
               <div className="flex flex-col space-y-4">
                 <Link 
-                  href="/" 
-                  className="flex items-center space-x-3 text-zinc-300 hover:text-white transition-colors p-2"
+                  href={navigation.home} 
+                  className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span>Home</span>
                 </Link>
                 <Link 
-                  href="/trending" 
-                  className="flex items-center space-x-3 text-zinc-300 hover:text-white transition-colors p-2"
+                  href={navigation.trending} 
+                  className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span>Trending</span>
                 </Link>
                 <Link 
-                  href="/series" 
-                  className="flex items-center space-x-3 text-zinc-300 hover:text-white transition-colors p-2"
+                  href={navigation.series} 
+                  className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span>Series</span>
+                </Link>
+                <Link 
+                  href={navigation.search} 
+                  className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <span>Search</span>
                 </Link>
               </div>
               
@@ -279,7 +293,7 @@ export const Navbar: React.FC = () => {
                   }}
                   variant="default"
                   size="sm"
-                  className="w-full bg-rose-500 hover:bg-rose-600"
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors"
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Login</span>

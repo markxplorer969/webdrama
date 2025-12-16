@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
+import Footer from "@/components/footer/Footer";
+import { Navbar } from "@/components/Navbar";
+import { siteConfig } from "@/config/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,24 +18,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dramaflex - Streaming Platform",
-  description: "Next generation streaming platform with community features",
-  keywords: ["streaming", "drama", "community", "platform"],
-  authors: [{ name: "Dramaflex Team" }],
+  title: siteConfig.metadata.title,
+  description: siteConfig.metadata.description,
+  keywords: siteConfig.metadata.keywords,
+  authors: [{ name: siteConfig.metadata.author }],
   icons: {
-    icon: "/logo.svg",
+    icon: siteConfig.metadata.logo,
   },
   openGraph: {
-    title: "Dramaflex",
-    description: "Next generation streaming platform",
-    url: "https://dramaflex.com",
-    siteName: "Dramaflex",
+    title: siteConfig.name,
+    description: siteConfig.metadata.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dramaflex",
-    description: "Next generation streaming platform",
+    title: siteConfig.name,
+    description: siteConfig.metadata.description,
   },
 };
 
@@ -42,12 +45,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100`}
       >
         <AuthProvider>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+            <main className="flex-1 pt-20">
+              {children}
+            </main>
+            <Footer />
+          </div>
           <Toaster />
         </AuthProvider>
       </body>

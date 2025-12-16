@@ -40,7 +40,7 @@ export const TrendingScroll: React.FC<TrendingScrollProps> = ({ trending }) => {
             {trendingItems.map((item) => (
               <Link
                 key={item.rank}
-                href={`/watch?bookId=${item.book_id}`}
+                href={`/watch/${item.book_id}`}
                 className="flex-shrink-0 w-40 group"
               >
                 <div className="relative overflow-hidden rounded-lg transition-all duration-300 hover:scale-105 hover:ring-2 hover:ring-rose-500">
