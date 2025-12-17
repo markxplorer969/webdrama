@@ -129,15 +129,13 @@ export const Navbar: React.FC = () => {
 
               {/* User Profile */}
               {!user ? (
-                <Button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  variant="default"
-                  size="sm"
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors"
+                <Link 
+                  href="/signin"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors px-4 py-2 rounded-full flex items-center space-x-2"
                 >
                   <LogIn className="h-4 w-4" />
-                  <span>Login</span>
-                </Button>
+                  <span>Sign In</span>
+                </Link>
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -207,6 +205,17 @@ export const Navbar: React.FC = () => {
                     )}
                     
                     <DropdownMenuSeparator />
+                    
+                    {/* Dashboard Link */}
+                    <DropdownMenuItem 
+                      className="text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                      asChild
+                    >
+                      <Link href="/dashboard" className="w-full flex items-center space-x-2">
+                        <Wallet className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
                     
                     {/* Sign Out */}
                     <DropdownMenuItem 
@@ -283,21 +292,29 @@ export const Navbar: React.FC = () => {
                 >
                   <span>Search</span>
                 </Link>
+                
+                {/* Dashboard Link for Mobile */}
+                {user && (
+                  <Link 
+                    href="/dashboard" 
+                    className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                )}
               </div>
               
               {!user && (
-                <Button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsAuthModalOpen(true);
-                  }}
-                  variant="default"
-                  size="sm"
-                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors"
+                <Link 
+                  href="/signin"
+                  className="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors px-4 py-3 rounded-lg flex items-center justify-center space-x-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <LogIn className="h-4 w-4" />
-                  <span>Login</span>
-                </Button>
+                  <span>Sign In</span>
+                </Link>
               )}
             </div>
           </div>
