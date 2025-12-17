@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     // Process unlock with COMPOSITE KEY SYSTEM (Backward Compatible)
     const newBalance = currentCredits - cost;
     const unlockedEpisodes = userData.unlocked_episodes || [];
-    const history = userData.history || [];
     
     // CRITICAL FIX: Create composite key for drama-specific unlocks
     const unlockKey = `${dramaId}_${episodeId}`;
@@ -77,7 +76,6 @@ export async function POST(request: NextRequest) {
     await userRef.update({
       credits: newBalance,
       unlocked_episodes: [...unlockedEpisodes, unlockKey],
-      history: [...history, `${dramaId}:${episodeId}`],
       lastUnlockedAt: serverTimestamp()
     });
 

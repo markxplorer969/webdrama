@@ -10,7 +10,8 @@ import {
   Film, 
   Home,
   ChevronLeft,
-  Ticket
+  Ticket,
+  Megaphone
 } from 'lucide-react';
 
 const navigation = [
@@ -28,6 +29,11 @@ const navigation = [
     name: 'Vouchers',
     href: '/admin/vouchers',
     icon: Ticket,
+  },
+  {
+    name: 'Announcements',
+    href: '/admin/announcements',
+    icon: Megaphone,
   },
   {
     name: 'Movies',

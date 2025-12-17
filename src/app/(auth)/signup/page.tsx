@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, Eye, EyeOff, Mail, Lock, User, ArrowLeft, Gift } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { signUpWithEmail, signInWithGoogle } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,6 +43,13 @@ export default function SignUpPage() {
 
     if (!formData.email.trim()) {
       toast.error('Email harus diisi');
+      return false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Format email tidak valid');
       return false;
     }
 
@@ -72,16 +81,35 @@ export default function SignUpPage() {
     try {
       setIsLoading(true);
       
-      // Mock auth call - replace with actual Firebase implementation
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Use real Firebase authentication
+      await signUpWithEmail(formData.email, formData.password, formData.fullName);
       
-      // Simulate successful sign up
+      // TODO: Handle referral code if provided
+      if (formData.referralCode.trim()) {
+        console.log('Referral code provided:', formData.referralCode);
+        // TODO: Implement referral code logic
+      }
+      
       toast.success('Akun berhasil dibuat!');
       router.push('/');
       
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error(error.message || 'Pendaftaran gagal. Silakan coba lagi.');
+      
+      // Handle specific Firebase error codes
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('Email sudah digunakan. Silakan gunakan email lain atau login.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Email tidak valid.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Pendaftaran dengan email/password tidak diizinkan.');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password terlalu lemah. Gunakan password yang lebih kuat.');
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Terlalu banyak percobaan pendaftaran. Silakan coba lagi nanti.');
+      } else {
+        toast.error(error.message || 'Pendaftaran gagal. Silakan coba lagi.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -91,8 +119,8 @@ export default function SignUpPage() {
     try {
       setIsLoading(true);
       
-      // Mock Google sign up - replace with actual Firebase implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use real Firebase Google authentication
+      await signInWithGoogle();
       
       toast.success('Akun Google berhasil dibuat!');
       router.push('/');

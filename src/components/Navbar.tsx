@@ -26,7 +26,8 @@ import {
   Crown,
   LogOut,
   LogIn,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { formatNumber } from '@/lib/currency';
 
@@ -217,6 +218,19 @@ export const Navbar: React.FC = () => {
                       </Link>
                     </DropdownMenuItem>
                     
+                    {/* Admin Panel Link - Only for admins */}
+                    {(userData?.role === 'admin' || userData?.role === 'superadmin') && (
+                      <DropdownMenuItem 
+                        className="text-zinc-300 focus:text-white focus:bg-zinc-800 cursor-pointer"
+                        asChild
+                      >
+                        <Link href="/admin" className="w-full flex items-center space-x-2">
+                          <Settings className="h-4 w-4" />
+                          <span>Admin Panel</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    
                     {/* Sign Out */}
                     <DropdownMenuItem 
                       className="text-red-400 focus:text-red-300 focus:bg-zinc-800 cursor-pointer"
@@ -302,6 +316,18 @@ export const Navbar: React.FC = () => {
                   >
                     <Wallet className="h-4 w-4" />
                     <span>Dashboard</span>
+                  </Link>
+                )}
+                
+                {/* Admin Panel Link for Mobile - Only for admins */}
+                {user && (userData?.role === 'admin' || userData?.role === 'superadmin') && (
+                  <Link 
+                    href="/admin" 
+                    className="flex items-center space-x-3 text-zinc-300 hover:text-white hover:bg-zinc-800/50 transition-colors p-3 rounded-lg"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Admin Panel</span>
                   </Link>
                 )}
               </div>

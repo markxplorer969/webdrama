@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { useVideoProgress } from '@/hooks/useVideoProgress';
 
 interface Episode {
   episode: number;
@@ -147,9 +148,19 @@ export default function WatchClient({ drama, initialEpisode }: WatchClientProps)
   const [error, setError] = useState<string | null>(null);
   const [isUnlocking, setIsUnlocking] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
+  const [progressRestored, setProgressRestored] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const { userData, updateUserData } = useAuth();
+
+  // Initialize video progress tracking
+  const { loadSavedProgress } = useVideoProgress({
+    bookId: drama.book_id,
+    episode: currentEpisode?.episode || 0,
+    title: drama.title,
+    poster: drama.poster || drama.thumbnail,
+    videoRef
+  });
 
   // Initialize current episode based on initialEpisode prop
   useEffect(() => {
@@ -193,6 +204,57 @@ export default function WatchClient({ drama, initialEpisode }: WatchClientProps)
 
     fetchStreamData();
   }, [currentEpisode, drama.book_id]);
+
+  // Load and restore saved progress when stream data is available
+  useEffect(() => {
+    if (!streamData?.video_url || !currentEpisode || progressRestored) return;
+
+    const restoreProgress = async () => {
+      try {
+        const savedProgress = await loadSavedProgress();
+        
+        if (savedProgress && videoRef.current) {
+          const { currentTime, duration } = savedProgress;
+          
+          // Only restore if progress is meaningful (more than 5% and less than 95%)
+          if (currentTime > 0 && duration > 0 && savedProgress.progress > 5 && savedProgress.progress < 95) {
+            // Wait for video metadata to load before setting currentTime
+            const video = videoRef.current;
+            
+            const handleLoadedMetadata = () => {
+              video.currentTime = currentTime;
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              
+              toast.success(`Resumed from ${savedProgress.progress.toFixed(1)}%`);
+              console.log('Progress restored:', {
+                bookId: drama.book_id,
+                episode: currentEpisode.episode,
+                currentTime: `${currentTime.toFixed(1)}s`,
+                duration: `${duration.toFixed(1)}s`,
+                progress: `${savedProgress.progress.toFixed(1)}%`
+              });
+            };
+            
+            video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            
+            // Fallback if metadata already loaded
+            if (video.readyState >= 1) {
+              video.currentTime = currentTime;
+              toast.success(`Resumed from ${savedProgress.progress.toFixed(1)}%`);
+            }
+          }
+        }
+        
+        setProgressRestored(true);
+      } catch (error) {
+        console.error('Failed to restore progress:', error);
+        setProgressRestored(true); // Don't try again
+      }
+    };
+
+    // Small delay to ensure video element is ready
+    setTimeout(restoreProgress, 500);
+  }, [streamData, currentEpisode, drama.book_id, loadSavedProgress, progressRestored]);
 
   // Update URL without page reload
   const updateURL = (episodeNumber: number) => {
@@ -275,8 +337,7 @@ export default function WatchClient({ drama, initialEpisode }: WatchClientProps)
         const unlockKey = `${drama.book_id}_${targetEp.id}`;
         updateUserData({
           credits: result.newBalance,
-          unlocked_episodes: [...(userData.unlocked_episodes || []), unlockKey],
-          history: [...(userData.history || []), `${drama.book_id}:${targetEp.id}`]
+          unlocked_episodes: [...(userData.unlocked_episodes || []), unlockKey]
         });
 
         toast.success("Episode Terbuka (-5 Credits)");
@@ -307,6 +368,11 @@ export default function WatchClient({ drama, initialEpisode }: WatchClientProps)
       handleEpisodeChange(nextEpisode);
     }
   };
+
+  // Reset progress restored state when episode changes
+  useEffect(() => {
+    setProgressRestored(false);
+  }, [currentEpisode]);
 
   // Auto-play when stream data is available and autoPlay is true
   useEffect(() => {

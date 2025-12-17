@@ -170,7 +170,6 @@ export function WatchContent({ drama, episode }: WatchContentProps) {
         // Update local user data
         userData.credits = result.newBalance;
         userData.unlocked_episodes?.push(episodeId);
-        userData.history?.push(`${drama.book_id}:${episodeId}`);
 
         setCurrentEpisode(episodeId);
         setStreamData({ video_url: `auto-play-ready` }); // Trigger video play

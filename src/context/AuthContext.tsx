@@ -15,7 +15,6 @@ export interface UserProfile {
   role?: string; // 'admin' | 'user'
   isVip?: boolean;
   unlocked_episodes: string[]; // Array of Episode IDs
-  history: string[]; // Array of Drama IDs
   createdAt?: any;
   lastLogin?: any;
 }
@@ -136,7 +135,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isVip: false,
           photoURL: user.photoURL || null,
           unlocked_episodes: [],
-          history: [],
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp()
         };
@@ -160,10 +158,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Initialize arrays if they don't exist
       if (!existingData.unlocked_episodes) {
         updates.unlocked_episodes = [];
-      }
-      
-      if (!existingData.history) {
-        updates.history = [];
       }
 
       // Only apply updates if there are changes
@@ -197,7 +191,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       isVip: false,
       photoURL: user.photoURL || null,
       unlocked_episodes: [],
-      history: [],
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp()
     };

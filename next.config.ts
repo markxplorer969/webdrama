@@ -62,11 +62,6 @@ const nextConfig: NextConfig = {
     unoptimized: false,
   },
   
-  // Environment-specific configuration
-  env: {
-    NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV || 'development',
-  },
-  
   // API configuration for Vercel
   experimental: {
     serverActions: {

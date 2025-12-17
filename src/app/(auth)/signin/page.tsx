@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignInPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { signInWithEmail, signInWithGoogle } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,19 +39,39 @@ export default function SignInPage() {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Format email tidak valid');
+      return;
+    }
+
     try {
       setIsLoading(true);
       
-      // Mock auth call - replace with actual Firebase implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use real Firebase authentication
+      await signInWithEmail(formData.email, formData.password);
       
-      // Simulate successful sign in
       toast.success('Login berhasil!');
       router.push('/');
       
     } catch (error: any) {
       console.error('Sign in error:', error);
-      toast.error(error.message || 'Login gagal. Silakan coba lagi.');
+      
+      // Handle specific Firebase error codes
+      if (error.code === 'auth/user-not-found') {
+        toast.error('Pengguna tidak ditemukan. Silakan daftar terlebih dahulu.');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Password salah. Silakan coba lagi.');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Email tidak valid.');
+      } else if (error.code === 'auth/user-disabled') {
+        toast.error('Akun Anda telah dinonaktifkan.');
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Terlalu banyak percobaan login. Silakan coba lagi nanti.');
+      } else {
+        toast.error(error.message || 'Login gagal. Silakan coba lagi.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -62,10 +84,9 @@ export default function SignInPage() {
     }
 
     try {
-      // Mock reset password - replace with actual Firebase implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Link reset password telah dikirim ke email Anda');
+      // TODO: Implement Firebase password reset functionality
+      // For now, show a message that this feature is coming soon
+      toast.info('Fitur reset password akan segera tersedia');
     } catch (error: any) {
       console.error('Reset password error:', error);
       toast.error(error.message || 'Gagal mengirim link reset password');
@@ -76,8 +97,8 @@ export default function SignInPage() {
     try {
       setIsLoading(true);
       
-      // Mock Google sign in - replace with actual Firebase implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use real Firebase Google authentication
+      await signInWithGoogle();
       
       toast.success('Login dengan Google berhasil!');
       router.push('/');
