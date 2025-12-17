@@ -1,7 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,6 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import RedeemTabContent from '@/components/dashboard/RedeemTabContent';
+import { toast } from '@/hooks/use-toast';
 import { 
   Wallet, 
   Crown, 
@@ -17,108 +24,199 @@ import {
   Mail, 
   Lock, 
   LogOut, 
-  Copy, 
-  Gift, 
-  TrendingUp,
-  ArrowRight,
-  History,
-  Settings
+  Settings,
+  History
 } from 'lucide-react';
-import { toast } from 'sonner';
 
-// Mock user data
-const mockUserData = {
-  uid: 'user123',
-  displayName: 'Andi Pratama',
-  email: 'andi@example.com',
-  photoURL: null,
-  credits: 450,
-  isVip: true,
-  memberSince: '15 Januari 2024',
-  referralCode: 'ANDI88',
-  totalReferrals: 0,
-};
-
-// Mock transaction data
-const mockTransactions = [
-  {
-    id: 1,
-    date: '2024-01-20',
-    description: 'Unlock Episode 5 - The CEO Secret',
-    amount: -10,
-    status: 'success',
-    type: 'deduction'
-  },
-  {
-    id: 2,
-    date: '2024-01-18',
-    description: 'Top Up via Voucher',
-    amount: +100,
-    status: 'success',
-    type: 'topup'
-  },
-  {
-    id: 3,
-    date: '2024-01-15',
-    description: 'Unlock Episode 3 - Sweet Revenge',
-    amount: -10,
-    status: 'success',
-    type: 'deduction'
-  },
-  {
-    id: 4,
-    date: '2024-01-10',
-    description: 'Welcome Bonus',
-    amount: +50,
-    status: 'success',
-    type: 'bonus'
-  },
-];
+interface UserData {
+  uid: string;
+  displayName: string;
+  email: string;
+  credits: number;
+  isVip: boolean;
+  photoURL?: string;
+  createdAt?: any;
+  referralCode?: string;
+  redeemedReferrals?: string[];
+  redeemedVouchers?: string[];
+}
 
 export default function DashboardPage() {
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
-  const [displayName, setDisplayName] = useState(mockUserData.displayName);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
 
+  // Real-time user data fetching
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data() as UserData;
+        setUserData(data);
+        setDisplayName(data.displayName || '');
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    }, (error) => {
+      console.error('Error fetching user data:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data pengguna",
+        variant: "destructive"
+      });
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, [user]);
+
+  // Handle profile update
   const handleSaveProfile = async () => {
-    setIsSaving(true);
-    // Mock save operation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast.success('Profil berhasil diperbarui!');
-  };
+    if (!user || !userData) return;
 
-  const handleCopyReferralCode = async () => {
+    setIsSaving(true);
     try {
-      await navigator.clipboard.writeText(mockUserData.referralCode);
-      setCopiedCode(true);
-      toast.success('Kode referral disalin!');
-      setTimeout(() => setCopiedCode(false), 2000);
+      // Update Firebase Auth profile
+      await updateProfile(user, {
+        displayName: displayName
+      });
+
+      // Update Firestore document
+      await updateDoc(doc(db, 'users', user.uid), {
+        displayName: displayName,
+        updatedAt: new Date()
+      });
+
+      toast({
+        title: "Berhasil!",
+        description: "Profil berhasil diperbarui"
+      });
+
     } catch (error) {
-      toast.error('Gagal menyalin kode');
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui profil",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  // Handle password reset
   const handleChangePassword = () => {
-    // Mock password reset
-    toast.success('Link reset password telah dikirim ke email Anda');
+    // In real implementation, send password reset email
+    toast({
+      title: "Info",
+      description: "Link reset password telah dikirim ke email Anda"
+    });
   };
 
-  const handleLogout = () => {
-    // Mock logout
-    toast.success('Anda telah keluar');
-    // In real app, redirect to login page
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Berhasil",
+        description: "Anda telah keluar"
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  // Format date
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'Unknown';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString('id-ID', { 
       day: 'numeric', 
       month: 'short', 
       year: 'numeric' 
     });
   };
+
+  // Calculate days active
+  const getDaysActive = (createdAt: any) => {
+    if (!createdAt) return 0;
+    
+    const created = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - created.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* Header Skeleton */}
+          <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-16 w-16 rounded-full bg-zinc-800" />
+                  <div>
+                    <Skeleton className="h-8 w-48 bg-zinc-800 mb-2" />
+                    <Skeleton className="h-4 w-64 bg-zinc-800" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-6">
+                  <Skeleton className="h-20 w-24 bg-zinc-800" />
+                  <Skeleton className="h-20 w-24 bg-zinc-800" />
+                  <Skeleton className="h-20 w-24 bg-zinc-800" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Tabs Skeleton */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <Skeleton className="h-12 bg-zinc-800" />
+              <Skeleton className="h-12 bg-zinc-800" />
+              <Skeleton className="h-12 bg-zinc-800" />
+            </div>
+            <Skeleton className="h-96 bg-zinc-800" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No user data state
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Data Tidak Ditemukan</h2>
+          <p className="text-zinc-400">Tidak dapat memuat data pengguna. Silakan refresh halaman.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -130,16 +228,16 @@ export default function DashboardPage() {
               {/* User Info */}
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 border-2 border-rose-600">
-                  <AvatarImage src={mockUserData.photoURL} />
+                  <AvatarImage src={userData.photoURL} />
                   <AvatarFallback className="bg-rose-600 text-white text-xl font-bold">
-                    {mockUserData.displayName.charAt(0).toUpperCase()}
+                    {getInitials(userData.displayName)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h1 className="text-2xl font-bold text-white">
-                    {mockUserData.displayName}
+                    {userData.displayName}
                   </h1>
-                  <p className="text-zinc-400">{mockUserData.email}</p>
+                  <p className="text-zinc-400">{userData.email}</p>
                 </div>
               </div>
 
@@ -152,7 +250,7 @@ export default function DashboardPage() {
                     <span className="text-sm text-zinc-400">Saldo</span>
                   </div>
                   <div className="text-3xl font-bold text-white mb-2">
-                    {mockUserData.credits.toLocaleString()} CR
+                    {userData.credits.toLocaleString()} CR
                   </div>
                   <Link href="/pricing">
                     <Button 
@@ -172,15 +270,15 @@ export default function DashboardPage() {
                   </div>
                   <Badge 
                     className={`mb-2 ${
-                      mockUserData.isVip 
+                      userData.isVip 
                         ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-white border-yellow-400' 
                         : 'bg-zinc-700 text-zinc-300 border-zinc-600'
                     }`}
                   >
-                    {mockUserData.isVip ? 'GOLD' : 'FREE'}
+                    {userData.isVip ? 'GOLD' : 'FREE'}
                   </Badge>
                   <p className="text-xs text-zinc-500">
-                    {mockUserData.isVip ? 'Unlimited Access' : 'Limited Access'}
+                    {userData.isVip ? 'Unlimited Access' : 'Limited Access'}
                   </p>
                 </div>
 
@@ -191,10 +289,10 @@ export default function DashboardPage() {
                     <span className="text-sm text-zinc-400">Member Since</span>
                   </div>
                   <div className="text-lg font-semibold text-white mb-2">
-                    {mockUserData.memberSince}
+                    {formatDate(userData.createdAt)}
                   </div>
                   <p className="text-xs text-zinc-500">
-                    {Math.floor((new Date().getTime() - new Date('2024-01-15').getTime()) / (1000 * 60 * 60 * 24))} hari aktif
+                    {getDaysActive(userData.createdAt)} hari aktif
                   </p>
                 </div>
               </div>
@@ -216,15 +314,15 @@ export default function DashboardPage() {
               value="referral" 
               className="data-[state=active]:bg-rose-600 data-[state=active]:text-white text-zinc-400"
             >
-              <Gift className="h-4 w-4 mr-2" />
-              Referral
+              <Wallet className="h-4 w-4 mr-2" />
+              Dompet & Referral
             </TabsTrigger>
             <TabsTrigger 
               value="transactions" 
               className="data-[state=active]:bg-rose-600 data-[state=active]:text-white text-zinc-400"
             >
               <History className="h-4 w-4 mr-2" />
-              Transaksi
+              Riwayat
             </TabsTrigger>
           </TabsList>
 
@@ -263,7 +361,7 @@ export default function DashboardPage() {
                   <Label htmlFor="email" className="text-zinc-300">Email</Label>
                   <Input
                     id="email"
-                    value={mockUserData.email}
+                    value={userData.email}
                     disabled
                     className="bg-zinc-800/50 border-zinc-700 text-zinc-400"
                   />
@@ -298,168 +396,20 @@ export default function DashboardPage() {
             </Card>
           </TabsContent>
 
-          {/* Tab 2: Referral Center */}
+          {/* Tab 2: Dompet & Referral */}
           <TabsContent value="referral" className="space-y-6">
-            {/* Hero Card */}
-            <Card className="bg-gradient-to-r from-rose-900 via-rose-800 to-orange-900 border-rose-600/50">
-              <CardContent className="p-8 text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                    <TrendingUp className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-2">
-                  Ajak Teman, Dapat Credits! 💸
-                </h2>
-                <p className="text-rose-100 mb-6">
-                  Bagikan kode referralmu dan dapatkan bonus credits setiap teman yang bergabung
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Code Display */}
-            <Card className="bg-zinc-900/90 border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-white">Kode Referral Kamu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 bg-zinc-800 border-2 border-dashed border-zinc-600 rounded-lg p-6 text-center">
-                    <code className="text-3xl font-bold text-rose-400 font-mono">
-                      {mockUserData.referralCode}
-                    </code>
-                  </div>
-                  <Button
-                    onClick={handleCopyReferralCode}
-                    className={`${
-                      copiedCode 
-                        ? 'bg-green-600 hover:bg-green-700' 
-                        : 'bg-rose-600 hover:bg-rose-700'
-                    } text-white`}
-                  >
-                    {copiedCode ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Tersalin!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Salin
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-zinc-900/90 border-zinc-800">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-rose-600/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="h-6 w-6 text-rose-400" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-1">
-                    {mockUserData.totalReferrals}
-                  </h3>
-                  <p className="text-zinc-400">Total Teman Diundang</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-rose-900/50 to-orange-900/50 border-rose-700/50">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Gift className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">
-                    20 CR + 50 CR
-                  </h3>
-                  <p className="text-rose-100 text-sm">
-                    Teman dapat 20 CR, Kamu dapat 50 CR
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Instructions */}
-            <Card className="bg-zinc-900/90 border-zinc-800">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <ArrowRight className="h-5 w-5 text-rose-400" />
-                  Cara Menggunakan Kode Referral
-                </h3>
-                <div className="space-y-3 text-zinc-300">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-                    <p>Bagikan kode <span className="font-mono bg-zinc-800 px-2 py-1 rounded text-rose-400">{mockUserData.referralCode}</span> kepada teman-temanmu</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
-                    <p>Teman memasukkan kode saat mendaftar</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                    <p>Teman dapat bonus 20 CR, kamu dapat 50 CR secara otomatis!</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <RedeemTabContent />
           </TabsContent>
 
-          {/* Tab 3: Transaction History */}
+          {/* Tab 3: Riwayat (Placeholder) */}
           <TabsContent value="transactions" className="space-y-6">
             <Card className="bg-zinc-900/90 border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Riwayat Transaksi
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-zinc-700">
-                        <th className="text-left py-3 px-4 text-zinc-400 font-medium">Tanggal</th>
-                        <th className="text-left py-3 px-4 text-zinc-400 font-medium">Deskripsi</th>
-                        <th className="text-right py-3 px-4 text-zinc-400 font-medium">Jumlah</th>
-                        <th className="text-center py-3 px-4 text-zinc-400 font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockTransactions.map((transaction) => (
-                        <tr key={transaction.id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
-                          <td className="py-4 px-4 text-zinc-300">
-                            {formatDate(transaction.date)}
-                          </td>
-                          <td className="py-4 px-4 text-white">
-                            {transaction.description}
-                          </td>
-                          <td className={`py-4 px-4 text-right font-medium ${
-                            transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {transaction.amount > 0 ? '+' : ''}{transaction.amount} CR
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Badge 
-                              variant={transaction.status === 'success' ? 'default' : 'destructive'}
-                              className={
-                                transaction.status === 'success' 
-                                  ? 'bg-green-600 text-white' 
-                                  : 'bg-red-600 text-white'
-                              }
-                            >
-                              {transaction.status === 'success' ? 'Berhasil' : 'Gagal'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <CardContent className="p-12 text-center">
+                <History className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">Belum Ada Riwayat Transaksi</h3>
+                <p className="text-zinc-400 max-w-md mx-auto">
+                  Riwayat transaksi Anda akan ditampilkan di sini. Mulai menonton dan melakukan redeem untuk melihat aktivitas Anda.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
