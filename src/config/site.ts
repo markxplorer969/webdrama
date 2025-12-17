@@ -1,10 +1,10 @@
 export const siteConfig = {
   name: "DramaFlex",
   description: "Platform streaming drama pendek #1 di Indonesia",
-  url: "https://dramaflex.com",
+  url: "https://dramaflex.xyz",
   
   contact: {
-    email: "support@dramaflex.web.id",
+    email: "support@dramaflex.xyz",
     whatsapp: "6287861374108", // Format: Country code without '+'
     whatsappDisplay: "+62 878-6137-4108",
     address: "Karawang, Indonesia",
@@ -20,7 +20,7 @@ export const siteConfig = {
   
   links: {
     instagram: "https://instagram.com/dramaflex",
-    tiktok: "https://tiktok.com/@dramaflex",
+    tiktok: "https://tiktok.com/@dramaflex.id",
     twitter: "https://twitter.com/dramaflex",
     youtube: "https://youtube.com/@dramaflex",
   },
@@ -74,7 +74,7 @@ export const siteConfig = {
   metadata: {
     title: "DramaFlex - Platform streaming drama pendek #1 di Indonesia",
     description: "DramaFlex adalah platform streaming drama pendek terbaik di Indonesia dengan ribuan konten berkualitas.",
-    keywords: ["streaming", "drama", "drama pendek", "Indonesia", "platform", "konten digital"],
+    keywords: ["streaming", "drama", "drama pendek", "Indonesia", "platform", "konten digital","drama china", " dracin"],
     author: "DramaFlex Team",
     logo: "/logo.svg",
   },
