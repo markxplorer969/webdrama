@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ArrowLeft, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DramaCard } from '@/components/home/DramaCard';
-import { serverFetch } from '@/lib/utils/api';
 
 interface SeriesPageProps {
   searchParams: Promise<{ page?: string }>;
@@ -20,7 +19,7 @@ async function SeriesContent({ page }: { page: number }) {
   let series = [];
   
   try {
-    const response = await serverFetch('/api/drama/latest', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/latest`, {
       cache: 'no-store',
     });
     

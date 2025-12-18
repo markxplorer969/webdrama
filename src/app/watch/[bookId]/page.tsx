@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import WatchClient from '@/components/watch/WatchClient';
-import { serverFetch } from '@/lib/utils/api';
 
 interface WatchPageProps {
   params: Promise<{ bookId: string }>;
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 
 async function getDramaDetail(bookId: string) {
   try {
-    const response = await serverFetch(`/api/drama/detail?bookId=${bookId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/detail?bookId=${bookId}`, {
       cache: 'no-store',
     });
     

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DramaCard } from '@/components/home/DramaCard';
-import { serverFetch } from '@/lib/utils/api';
 
 interface TrendingPageProps {
   searchParams: Promise<{ page?: string }>;
@@ -20,7 +19,7 @@ async function TrendingContent({ page }: { page: number }) {
   let trending = [];
   
   try {
-    const response = await serverFetch('/api/home', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/home`, {
       cache: 'no-store',
     });
     

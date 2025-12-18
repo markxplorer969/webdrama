@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Navbar } from '@/components/Navbar';
 import { formatNumber } from '@/lib/currency';
-import { serverFetch } from '@/lib/utils/api';
 
 interface DramaDetail {
   book_id: string;
@@ -34,7 +33,7 @@ interface DramaDetailPageProps {
 
 async function getDramaDetail(bookId: string): Promise<DramaDetail | null> {
   try {
-    const response = await serverFetch(`/api/drama/detail?bookId=${bookId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/detail?bookId=${bookId}`, {
       cache: 'no-store',
     });
     

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DramaCard } from '@/components/home/DramaCard';
-import { serverFetch } from '@/lib/utils/api';
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>;
@@ -21,7 +20,7 @@ async function SearchResults({ query }: { query: string }) {
   let results = [];
   
   try {
-    const response = await serverFetch(`/api/drama/search?q=${encodeURIComponent(query)}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/search?q=${encodeURIComponent(query)}`, {
       cache: 'no-store', // Ensure fresh data
     });
     
