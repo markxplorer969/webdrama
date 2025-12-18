@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dramabox } from '@/lib/dramabox';
+import { getDramaDetails, getBestVideoUrl, type DramaDetails } from '@/lib/services/dramabox';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,13 +20,58 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch stream URL with timeout
-    const streamPromise = dramabox.stream(bookId, episode);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 25000)
-    );
+    // Fetch drama details with episodes
+    const dramaData = await getDramaDetails(bookId);
+    
+    if (!dramaData || !dramaData.episodes || dramaData.episodes.length === 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Drama not found or no episodes available',
+          message: 'Unable to load episode data'
+        },
+        { status: 404 }
+      );
+    }
 
-    const streamData = await Promise.race([streamPromise, timeoutPromise]);
+    // Find the specific episode
+    const episodeIndex = parseInt(episode) - 1; // Convert to 0-based index
+    const episodeData = dramaData.episodes[episodeIndex];
+
+    if (!episodeData) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Episode not found',
+          message: `Episode ${episode} is not available`
+        },
+        { status: 404 }
+      );
+    }
+
+    // Get the best video URL for this episode
+    const videoUrl = getBestVideoUrl(episodeData);
+
+    if (!videoUrl) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Video URL not available',
+          message: 'Unable to get video stream for this episode'
+        },
+        { status: 404 }
+      );
+    }
+
+    // Return stream data in expected format
+    const streamData = {
+      book_id: bookId,
+      episode: episode,
+      video_url: videoUrl,
+      chapterId: episodeData.chapterId,
+      chapterName: episodeData.chapterName,
+      qualities: episodeData.cdnList?.[0]?.videoPathList || []
+    };
 
     return NextResponse.json({
       success: true,

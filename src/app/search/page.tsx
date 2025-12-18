@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DramaCard } from '@/components/home/DramaCard';
+import { searchDramas, toUnifiedDrama, type UnifiedDrama } from '@/lib/services/dramabox';
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>;
@@ -16,18 +17,13 @@ export const metadata: Metadata = {
 };
 
 async function SearchResults({ query }: { query: string }) {
-  // Fetch search results directly from scraper (no cache)
-  let results = [];
+  // Fetch search results directly from external API
+  let results: UnifiedDrama[] = [];
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/search?q=${encodeURIComponent(query)}`, {
-      cache: 'no-store', // Ensure fresh data
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      results = data.success ? data.data : [];
-    }
+    const searchResults = await searchDramas(query);
+    // Convert to unified format for DramaCard component
+    results = searchResults.map(drama => toUnifiedDrama(drama));
   } catch (error) {
     console.error('Search fetch error:', error);
   }

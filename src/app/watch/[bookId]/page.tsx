@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import WatchClient from '@/components/watch/WatchClient';
+import { getDramaDetails, getBestVideoUrl, type DramaDetails } from '@/lib/services/dramabox';
 
 interface WatchPageProps {
   params: Promise<{ bookId: string }>;
@@ -14,16 +15,34 @@ export const metadata: Metadata = {
 
 async function getDramaDetail(bookId: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/detail?bookId=${bookId}`, {
-      cache: 'no-store',
-    });
+    const dramaData = await getDramaDetails(bookId);
     
-    if (!response.ok) {
+    if (!dramaData) {
       return null;
     }
-    
-    const data = await response.json();
-    return data.success ? data.data : null;
+
+    // Transform the data to match the expected Drama interface for WatchClient
+    const transformedDrama = {
+      book_id: dramaData.bookId,
+      title: dramaData.bookName,
+      description: dramaData.introduction || 'No description available.',
+      thumbnail: dramaData.coverWap || '',
+      poster: dramaData.coverWap || '',
+      upload_date: new Date().toISOString(),
+      status: 'Ongoing',
+      stats: {
+        followers: '0',
+        total_episodes: dramaData.episodes.length.toString(),
+      },
+      episode_list: dramaData.episodes.map((episode, index) => ({
+        episode: episode.chapterIndex + 1,
+        id: episode.chapterId,
+        title: episode.chapterName,
+        is_free: episode.chapterIndex === 0, // First episode is usually free
+      })),
+    };
+
+    return transformedDrama;
   } catch (error) {
     console.error('Failed to fetch drama detail:', error);
     return null;
