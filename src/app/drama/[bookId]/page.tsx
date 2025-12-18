@@ -33,7 +33,7 @@ interface DramaDetailPageProps {
 
 async function getDramaDetail(bookId: string): Promise<DramaDetail | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/detail?bookId=${bookId}`, {
+    const response = await fetch(`/api/drama/detail?bookId=${bookId}`, {
       cache: 'no-store',
     });
     

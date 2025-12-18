@@ -9,18 +9,9 @@ export const getBaseUrl = (): string => {
     return "";
   }
   
-  // Server-side production - use Vercel URL
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  
-  // Server-side development - use environment variable or fallback
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  
-  // Local development fallback
-  return "http://localhost:3000";
+  // Server-side - use relative paths for Vercel compatibility
+  // This ensures the same domain is used for API calls
+  return "";
 };
 
 /**

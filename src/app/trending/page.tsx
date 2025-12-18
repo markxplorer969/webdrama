@@ -19,7 +19,7 @@ async function TrendingContent({ page }: { page: number }) {
   let trending = [];
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/home`, {
+    const response = await fetch("/api/home", {
       cache: 'no-store',
     });
     

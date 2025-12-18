@@ -19,7 +19,7 @@ async function SeriesContent({ page }: { page: number }) {
   let series = [];
   
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/drama/latest`, {
+    const response = await fetch("/api/drama/latest", {
       cache: 'no-store',
     });
     
