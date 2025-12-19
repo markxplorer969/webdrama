@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dramabox } from '@/lib/dramabox';
+import { getDramaDetails } from '@/lib/services/dramabox';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch drama details with timeout
-    const detailPromise = dramabox.detail(bookId.trim());
+    const detailPromise = getDramaDetails(bookId.trim());
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Request timeout')), 25000)
     );

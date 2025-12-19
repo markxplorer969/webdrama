@@ -1,7 +1,7 @@
 import { HeroSection } from '@/components/home/HeroSection';
 import { TrendingScroll } from '@/components/home/TrendingScroll';
 import { LatestGrid } from '@/components/home/LatestGrid';
-import { getTrending, toUnifiedDrama, type UnifiedDrama } from '@/lib/services/dramabox';
+import { getTrending, getLatest, toUnifiedDrama, type UnifiedDrama } from '@/lib/services/dramabox';
 import { Loader2, Film } from 'lucide-react';
 
 // Loading Skeleton Component
@@ -31,14 +31,23 @@ const ErrorComponent = () => (
 export default async function Home() {
   // Fetch data directly from external API
   let trendingData: UnifiedDrama[] = [];
+  let latestData: UnifiedDrama[] = [];
   let error: Error | null = null;
 
   try {
-    const trending = await getTrending();
+    // Fetch both trending and latest in parallel
+    const [trending, latest] = await Promise.all([
+      getTrending(),
+      getLatest()
+    ]);
     
-    // Convert to unified format and split for hero section (top 3) and rest
+    // Convert to unified format
     trendingData = trending.map((drama, index) => 
       toUnifiedDrama(drama, (index + 1).toString())
+    );
+    
+    latestData = latest.map((drama) => 
+      toUnifiedDrama(drama)
     );
   } catch (err) {
     console.error('Home page error:', err);
@@ -63,8 +72,8 @@ export default async function Home() {
         {/* Trending Scroll - Rest of Trending */}
         <TrendingScroll trending={scrollTrending} />
         
-        {/* Latest Episodes Grid - Using remaining trending as latest for now */}
-        <LatestGrid latest={trendingData.slice(0, 12)} />
+        {/* Latest Episodes Grid - Real latest data */}
+        <LatestGrid latest={latestData.slice(0, 12)} />
       </main>
     </div>
   );

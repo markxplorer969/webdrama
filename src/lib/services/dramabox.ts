@@ -1,40 +1,41 @@
 /**
- * Dramabox Service - Centralized API client for Sansekai Dramabox API
+ * Dramabox Service - Centralized API client for DramaFlex API
  * Replaces local scraping with stable external API calls
  */
 
-// Base URL for Sansekai API
-const API_BASE_URL = 'https://dramabox.sansekai.my.id/api/dramabox';
+// Base URL for DramaFlex API
+const API_BASE_URL = 'https://api.dramaflex.xyz/api';
 
 // Type definitions for API responses
 export interface TrendingDrama {
-  bookId: string;
-  bookName: string;
-  coverWap: string;
-  chapterCount: number;
-  introduction: string;
-  tags: string[];
-  tagV3s: Array<{
-    tagId: number;
-    tagName: string;
-    tagEnName: string;
-  }>;
-  rankVo: {
-    rankType: number;
-    hotCode: string;
-    sort: number;
-  };
-  protagonist: string;
+  rank?: string;
+  title: string;
+  book_id: string;
+  image: string;
+  views?: string;
+  episodes?: string;
+  bookId?: string; // For backward compatibility
+  bookName?: string; // For backward compatibility
+  coverWap?: string; // For backward compatibility
+  chapterCount?: number; // For backward compatibility
+  introduction?: string; // For backward compatibility
+  protagonist?: string; // For backward compatibility
+  tags?: string[]; // For backward compatibility
 }
 
 export interface SearchDrama {
-  bookId: string;
-  bookName: string;
-  introduction: string;
-  author: string;
-  cover: string;
-  protagonist: string;
-  tagNames: string[];
+  title: string;
+  book_id: string;
+  image: string;
+  introduction?: string;
+  author?: string;
+  protagonist?: string;
+  tagNames?: string[];
+  // For backward compatibility
+  bookId?: string;
+  bookName?: string;
+  cover?: string;
+  tags?: string[];
 }
 
 export interface VideoQuality {
@@ -52,28 +53,45 @@ export interface CDNInfo {
 }
 
 export interface EpisodeDetail {
-  chapterId: string;
-  chapterIndex: number;
-  isCharge: number;
-  chapterName: string;
-  cdnList: CDNInfo[];
-  chapterImg: string;
-  chapterType: number;
-  needInterstitialAd: number;
-  viewingDuration: number;
-  chargeChapter: boolean;
+  book_id: string;
+  episode: string;
+  video_url: string;
+  // For backward compatibility
+  chapterId?: string;
+  chapterIndex?: number;
+  isCharge?: number;
+  chapterName?: string;
+  cdnList?: CDNInfo[];
+  chapterImg?: string;
+  chapterType?: number;
+  needInterstitialAd?: number;
+  viewingDuration?: number;
+  chargeChapter?: boolean;
 }
 
 export interface DramaDetails {
-  // This would contain drama metadata combined from trending + episodes
-  bookId: string;
-  bookName: string;
-  coverWap: string;
-  chapterCount: number;
-  introduction: string;
-  protagonist: string;
-  tags: string[];
-  episodes: EpisodeDetail[];
+  book_id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  upload_date?: string;
+  stats?: {
+    followers?: string;
+    total_episodes?: string;
+  };
+  episode_list?: Array<{
+    episode: number;
+    id: string;
+  }>;
+  // For backward compatibility
+  bookId?: string;
+  bookName?: string;
+  coverWap?: string;
+  chapterCount?: number;
+  introduction?: string;
+  protagonist?: string;
+  tags?: string[];
+  episodes?: EpisodeDetail[];
 }
 
 // Unified Drama interface for components
@@ -87,6 +105,33 @@ export interface UnifiedDrama {
   rank?: string;
   protagonist?: string;
   tags?: string[];
+}
+
+/**
+ * Fetches latest dramas from external API
+ * @returns Promise<TrendingDrama[]> Array of latest dramas
+ */
+export async function getLatest(): Promise<TrendingDrama[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/latest`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'DramaFlex/1.0',
+      },
+      cache: 'no-store', // Ensure fresh data
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result?.data || [];
+  } catch (error) {
+    console.error('Failed to fetch latest dramas:', error);
+    return []; // Return empty array on error
+  }
 }
 
 /**
@@ -108,8 +153,8 @@ export async function getTrending(): Promise<TrendingDrama[]> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data || [];
+    const result = await response.json();
+    return result?.data || [];
   } catch (error) {
     console.error('Failed to fetch trending dramas:', error);
     return []; // Return empty array on error
@@ -127,7 +172,7 @@ export async function searchDramas(query: string): Promise<SearchDrama[]> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query.trim())}`, {
+    const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query.trim())}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -140,8 +185,8 @@ export async function searchDramas(query: string): Promise<SearchDrama[]> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data || [];
+    const result = await response.json();
+    return result?.data || [];
   } catch (error) {
     console.error('Failed to search dramas:', error);
     return []; // Return empty array on error
@@ -159,7 +204,7 @@ export async function getDramaDetails(bookId: string): Promise<DramaDetails | nu
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/allepisode?bookId=${encodeURIComponent(bookId.trim())}`, {
+    const response = await fetch(`${API_BASE_URL}/detail/${encodeURIComponent(bookId.trim())}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -172,28 +217,31 @@ export async function getDramaDetails(bookId: string): Promise<DramaDetails | nu
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const episodesData = await response.json();
+    const result = await response.json();
+    const dramaData = result?.data;
     
-    if (!episodesData || !Array.isArray(episodesData)) {
+    if (!dramaData) {
       return null;
     }
 
-    // Get basic drama info from first episode or fetch from trending if needed
-    const firstEpisode = episodesData[0];
-    if (!firstEpisode) {
-      return null;
-    }
-
-    // Extract basic drama metadata
+    // Extract drama details from API response
     const dramaDetails: DramaDetails = {
+      book_id: dramaData.book_id || bookId,
+      title: dramaData.title || `Drama ${bookId}`,
+      description: dramaData.description || '',
+      thumbnail: dramaData.thumbnail || '',
+      upload_date: dramaData.upload_date,
+      stats: dramaData.stats,
+      episode_list: dramaData.episode_list || [],
+      // For backward compatibility
       bookId: bookId,
-      bookName: `Drama ${bookId}`, // Fallback name
-      coverWap: firstEpisode.chapterImg || '',
-      chapterCount: episodesData.length,
-      introduction: '',
+      bookName: dramaData.title || `Drama ${bookId}`,
+      coverWap: dramaData.thumbnail || '',
+      chapterCount: parseInt(dramaData.stats?.total_episodes || '0'),
+      introduction: dramaData.description || '',
       protagonist: '',
       tags: [],
-      episodes: episodesData,
+      episodes: []
     };
 
     return dramaDetails;
@@ -204,11 +252,56 @@ export async function getDramaDetails(bookId: string): Promise<DramaDetails | nu
 }
 
 /**
+ * Fetches streaming video URL for a specific episode
+ * @param bookId - The drama book ID
+ * @param episodeId - The episode ID
+ * @returns Promise<EpisodeDetail | null> Episode streaming details or null on error
+ */
+export async function getEpisodeStream(bookId: string, episodeId: string): Promise<EpisodeDetail | null> {
+  if (!bookId || bookId.trim() === '' || !episodeId || episodeId.trim() === '') {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/stream/${encodeURIComponent(bookId.trim())}/${encodeURIComponent(episodeId.trim())}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'DramaFlex/1.0',
+      },
+      cache: 'no-store', // Ensure fresh stream links
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const streamData = result?.data;
+    
+    if (!streamData) {
+      return null;
+    }
+
+    return streamData as EpisodeDetail;
+  } catch (error) {
+    console.error('Failed to fetch episode stream:', error);
+    return null; // Return null on error
+  }
+}
+
+/**
  * Gets best video URL for an episode (prefers 720p default, falls back to available)
  * @param episode - Episode detail object
  * @returns string | null - Best video URL or null if not found
  */
 export function getBestVideoUrl(episode: EpisodeDetail): string | null {
+  // For new API format, video_url is directly available
+  if (episode.video_url) {
+    return episode.video_url;
+  }
+
+  // Fallback to old format for backward compatibility
   if (!episode.cdnList || episode.cdnList.length === 0) {
     return null;
   }
@@ -249,33 +342,36 @@ export function getVideoQualities(episode: EpisodeDetail): VideoQuality[] {
  */
 export function toUnifiedDrama(drama: TrendingDrama | SearchDrama, rank?: string): UnifiedDrama {
   const base = {
-    book_id: drama.bookId,
-    title: drama.bookName,
-    image: 'coverWap' in drama ? drama.coverWap : drama.cover,
+    book_id: drama.book_id,
+    title: drama.title,
+    image: drama.image,
     description: drama.introduction,
     protagonist: drama.protagonist,
     tags: drama.tags || drama.tagNames || [],
   };
 
-  if ('rankVo' in drama && rank) {
+  if ('rank' in drama && drama.rank) {
     return {
       ...base,
-      rank,
-      views: drama.rankVo?.hotCode || '',
-      episodes: drama.chapterCount?.toString() || '',
+      rank: drama.rank,
+      views: drama.views || '',
+      episodes: drama.episodes || '',
     };
   }
 
   return {
     ...base,
-    episodes: ('chapterCount' in drama ? drama.chapterCount : 0).toString(),
+    episodes: drama.episodes || '',
+    views: drama.views || '',
   };
 }
 
 export default {
+  getLatest,
   getTrending,
   searchDramas,
   getDramaDetails,
+  getEpisodeStream,
   getBestVideoUrl,
   getVideoQualities,
   toUnifiedDrama,

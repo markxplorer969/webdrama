@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dramabox } from '@/lib/dramabox';
+import { getLatest } from '@/lib/services/dramabox';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch latest dramas for the requested page with timeout
-    const latestPromise = dramabox.latest(page);
+    const latestPromise = getLatest();
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Request timeout')), 25000)
     );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dramabox } from '@/lib/dramabox';
+import { searchDramas } from '@/lib/services/dramabox';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch search results with timeout
-    const searchPromise = dramabox.search(query.trim());
+    const searchPromise = searchDramas(query.trim());
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Request timeout')), 25000)
     );

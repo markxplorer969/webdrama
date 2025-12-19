@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDramaDetails, getBestVideoUrl, type DramaDetails } from '@/lib/services/dramabox';
+import { getEpisodeStream, getBestVideoUrl } from '@/lib/services/dramabox';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,37 +20,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch drama details with episodes
-    const dramaData = await getDramaDetails(bookId);
+    // Fetch episode stream data directly
+    const episodeStreamData = await getEpisodeStream(bookId, episode);
     
-    if (!dramaData || !dramaData.episodes || dramaData.episodes.length === 0) {
+    if (!episodeStreamData) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Drama not found or no episodes available',
-          message: 'Unable to load episode data'
+          error: 'Episode stream not found',
+          message: `Unable to load stream for episode ${episode} of drama ${bookId}`
         },
         { status: 404 }
       );
     }
 
-    // Find the specific episode
-    const episodeIndex = parseInt(episode) - 1; // Convert to 0-based index
-    const episodeData = dramaData.episodes[episodeIndex];
-
-    if (!episodeData) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Episode not found',
-          message: `Episode ${episode} is not available`
-        },
-        { status: 404 }
-      );
-    }
-
-    // Get the best video URL for this episode
-    const videoUrl = getBestVideoUrl(episodeData);
+    // Get best video URL for this episode
+    const videoUrl = getBestVideoUrl(episodeStreamData);
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -68,9 +53,9 @@ export async function GET(request: NextRequest) {
       book_id: bookId,
       episode: episode,
       video_url: videoUrl,
-      chapterId: episodeData.chapterId,
-      chapterName: episodeData.chapterName,
-      qualities: episodeData.cdnList?.[0]?.videoPathList || []
+      chapterId: episodeStreamData.chapterId,
+      chapterName: episodeStreamData.chapterName,
+      qualities: episodeStreamData.cdnList?.[0]?.videoPathList || []
     };
 
     return NextResponse.json({
