@@ -8,9 +8,10 @@ import {
   getDocs, 
   query, 
   where, 
-  writeBatch, 
   runTransaction,
-  serverTimestamp 
+  serverTimestamp,
+  updateDoc,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -26,9 +27,14 @@ import {
   AlertCircle, 
   Users,
   TrendingUp,
-  Code
+  Code,
+  Loader2,
+  Sparkles,
+  Crown,
+  Target
 } from 'lucide-react';
 
+// Database Schema Interfaces
 interface VoucherData {
   code: string;
   credits: number;
@@ -37,6 +43,8 @@ interface VoucherData {
   redeemedBy: string[];
   type?: 'public' | 'private';
   description?: string;
+  expiresAt?: any;
+  createdAt?: any;
 }
 
 interface UserData {
@@ -46,6 +54,18 @@ interface UserData {
   redeemedReferrals: string[];
   redeemedVouchers: string[];
   displayName?: string;
+  email?: string;
+  photoURL?: string;
+  referredBy?: string;
+  referredByCode?: string;
+  successfulReferrals?: number;
+}
+
+interface TransactionResult {
+  type: 'voucher' | 'referral';
+  credits: number;
+  referrerBonus?: number;
+  message: string;
 }
 
 export default function RedeemTabContent() {
@@ -57,13 +77,20 @@ export default function RedeemTabContent() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Generate random referral code
+  // Generate referral code: 4 chars of name + 3 random digits
   const generateReferralCode = (displayName?: string): string => {
+    // Extract first 4 characters, remove non-alphabetic, convert to uppercase
     const namePart = displayName 
-      ? displayName.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, '')
+      ? displayName
+          .replace(/[^a-zA-Z]/g, '') // Remove non-alphabetic
+          .substring(0, 4)
+          .toUpperCase()
       : 'USER';
-    const randomPart = Math.floor(1000 + Math.random() * 9000);
-    return `${namePart}${randomPart}`;
+    
+    // Generate 3 random digits
+    const randomDigits = Math.floor(100 + Math.random() * 900).toString();
+    
+    return `${namePart}${randomDigits}`;
   };
 
   // Load user data and generate referral code if needed
@@ -71,23 +98,40 @@ export default function RedeemTabContent() {
     if (!user) return;
 
     const loadUserData = async () => {
+      setLoading(true);
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
         if (userDoc.exists()) {
           const data = userDoc.data() as UserData;
           setUserData(data);
 
-          // Generate referral code if not exists
+          // Generate referral code if it doesn't exist
           if (!data.referralCode) {
-            const newReferralCode = generateReferralCode(data.displayName);
+            const newReferralCode = generateReferralCode(user.displayName || data.displayName);
             
             await runTransaction(db, async (transaction) => {
               const userRef = doc(db, 'users', user.uid);
-              const userDoc = await transaction.get(userRef);
+              const currentUserDoc = await transaction.get(userRef);
               
-              if (userDoc.exists()) {
+              if (currentUserDoc.exists()) {
                 transaction.update(userRef, {
                   referralCode: newReferralCode,
+                  updatedAt: serverTimestamp()
+                });
+              } else {
+                // Create user document if it doesn't exist
+                transaction.set(userRef, {
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL,
+                  credits: 0,
+                  referralCode: newReferralCode,
+                  redeemedReferrals: [],
+                  redeemedVouchers: [],
+                  createdAt: serverTimestamp(),
                   updatedAt: serverTimestamp()
                 });
               }
@@ -97,6 +141,31 @@ export default function RedeemTabContent() {
           } else {
             setReferralCode(data.referralCode);
           }
+        } else {
+          // User document doesn't exist, create it
+          const newReferralCode = generateReferralCode(user.displayName);
+          
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            credits: 0,
+            referralCode: newReferralCode,
+            redeemedReferrals: [],
+            redeemedVouchers: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+
+          setUserData({
+            uid: user.uid,
+            credits: 0,
+            referralCode: newReferralCode,
+            redeemedReferrals: [],
+            redeemedVouchers: []
+          });
+          setReferralCode(newReferralCode);
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -105,6 +174,8 @@ export default function RedeemTabContent() {
           description: "Gagal memuat data pengguna",
           variant: "destructive"
         });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -130,7 +201,7 @@ export default function RedeemTabContent() {
     }
   };
 
-  // Redeem code handler
+  // Main redeem handler with transaction
   const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -156,8 +227,8 @@ export default function RedeemTabContent() {
     setRedeeming(true);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        // Step A: Check if it's a voucher
+      const result = await runTransaction(db, async (transaction): Promise<TransactionResult> => {
+        // Step A: Search vouchers collection by code field
         const voucherQuery = query(
           collection(db, 'vouchers'), 
           where('code', '==', inputCode)
@@ -169,13 +240,18 @@ export default function RedeemTabContent() {
           const voucherDoc = voucherSnapshot.docs[0];
           const voucherData = voucherDoc.data() as VoucherData;
           
-          // Check if voucher is still valid
+          // Validate voucher
           if (voucherData.currentUses >= voucherData.maxUses) {
             throw new Error('Voucher ini sudah mencapai batas penggunaan');
           }
 
           if (voucherData.redeemedBy.includes(user.uid)) {
             throw new Error('Anda sudah menggunakan voucher ini');
+          }
+
+          // Check expiration if exists
+          if (voucherData.expiresAt && voucherData.expiresAt.toDate() < new Date()) {
+            throw new Error('Voucher ini sudah kadaluarsa');
           }
 
           // Update voucher
@@ -200,7 +276,7 @@ export default function RedeemTabContent() {
           };
         }
 
-        // Step B: Check if it's a referral code
+        // Step B: Search users collection for referral code
         const userQuery = query(
           collection(db, 'users'), 
           where('referralCode', '==', inputCode)
@@ -212,12 +288,12 @@ export default function RedeemTabContent() {
           const referrerDoc = userSnapshot.docs[0];
           const referrerData = referrerDoc.data() as UserData;
           
-          // Check if referring to self
+          // Prevent self-referral
           if (referrerData.uid === user.uid) {
             throw new Error('Tidak bisa menggunakan kode referral sendiri');
           }
 
-          // Check if already redeemed this referral
+          // Check if already used this referral
           if (userData.redeemedReferrals?.includes(referrerData.uid)) {
             throw new Error('Anda sudah menggunakan kode referral ini');
           }
@@ -230,7 +306,7 @@ export default function RedeemTabContent() {
           transaction.update(referrerDoc.ref, {
             credits: referrerData.credits + referrerBonus,
             redeemedReferrals: [...(referrerData.redeemedReferrals || []), user.uid],
-            successfulReferrals: (referrerData.redeemedReferrals?.length || 0) + 1,
+            successfulReferrals: (referrerData.successfulReferrals || 0) + 1,
             lastReferralAt: serverTimestamp()
           });
 
@@ -256,15 +332,25 @@ export default function RedeemTabContent() {
         throw new Error('Kode tidak valid atau tidak ditemukan');
       });
 
-      // Success
+      // Success - show result
       setRedeemCode('');
-      toast({
-        title: "Berhasil!",
-        description: "Kode berhasil ditukarkan",
-      });
+      
+      // Show appropriate success message
+      if (result.type === 'referral' && result.referrerBonus) {
+        toast({
+          title: "Referral Berhasil!",
+          description: `Anda mendapatkan ${result.credits} credits, referrer mendapatkan ${result.referrerBonus} credits!`,
+        });
+      } else {
+        toast({
+          title: "Berhasil!",
+          description: result.message,
+        });
+      }
 
       // Reload user data to get updated credits
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         setUserData(userDoc.data() as UserData);
       }
@@ -281,12 +367,23 @@ export default function RedeemTabContent() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-rose-500 mx-auto mb-4 animate-spin" />
+          <p className="text-zinc-400">Memuat data pengguna...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user || !userData) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-zinc-400 mx-auto mb-4" />
-          <p className="text-zinc-400">Memuat data pengguna...</p>
+          <p className="text-zinc-400">Silakan login untuk mengakses halaman ini</p>
         </div>
       </div>
     );
@@ -295,25 +392,26 @@ export default function RedeemTabContent() {
   return (
     <div className="space-y-6">
       {/* My Referral Code Section */}
-      <Card>
+      <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Users className="w-5 h-5 text-rose-500" />
             Kode Referral Saya
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-zinc-400">
             Bagikan kode ini ke teman dan dapatkan 50 credits untuk setiap referral yang berhasil!
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-rose-600/20 to-pink-600/20 border border-rose-500/30 rounded-lg p-4">
                 <div className="flex items-center gap-3">
-                  <Code className="w-5 h-5 text-rose-500" />
+                  <Crown className="w-5 h-5 text-rose-500" />
                   <span className="font-mono text-xl font-bold text-white">
                     {referralCode}
                   </span>
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
                 </div>
               </div>
               <p className="text-xs text-zinc-500 mt-2">
@@ -341,9 +439,9 @@ export default function RedeemTabContent() {
         </CardContent>
       </Card>
 
-      {/* Referral Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="border-zinc-800 bg-zinc-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
@@ -351,7 +449,7 @@ export default function RedeemTabContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">
-                  {userData.redeemedReferrals?.length || 0}
+                  {userData.successfulReferrals || userData.redeemedReferrals?.length || 0}
                 </p>
                 <p className="text-xs text-zinc-400">Referral Berhasil</p>
               </div>
@@ -359,7 +457,7 @@ export default function RedeemTabContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-zinc-800 bg-zinc-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -375,11 +473,11 @@ export default function RedeemTabContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-zinc-800 bg-zinc-900">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-rose-500/20 rounded-full flex items-center justify-center">
-                <Gift className="w-5 h-5 text-rose-500" />
+                <Target className="w-5 h-5 text-rose-500" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">
@@ -393,13 +491,13 @@ export default function RedeemTabContent() {
       </div>
 
       {/* Redeem Code Section */}
-      <Card>
+      <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Gift className="w-5 h-5 text-rose-500" />
             Redeem Kode
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-zinc-400">
             Masukkan kode voucher atau kode referral untuk mendapatkan credits
           </CardDescription>
         </CardHeader>
@@ -411,7 +509,7 @@ export default function RedeemTabContent() {
                 placeholder="Masukkan kode voucher atau referral"
                 value={redeemCode}
                 onChange={(e) => setRedeemCode(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500 focus:border-rose-600 focus:ring-rose-600/20"
                 disabled={redeeming}
               />
               <p className="text-xs text-zinc-500 mt-2">
@@ -426,7 +524,7 @@ export default function RedeemTabContent() {
             >
               {redeeming ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Memproses...
                 </>
               ) : (
@@ -441,11 +539,11 @@ export default function RedeemTabContent() {
       </Card>
 
       {/* Instructions */}
-      <Card>
+      <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader>
-          <CardTitle className="text-lg">Cara Penggunaan</CardTitle>
+          <CardTitle className="text-lg text-white">Cara Penggunaan</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="flex items-start gap-3">
             <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30 mt-1">
               1

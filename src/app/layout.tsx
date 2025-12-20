@@ -39,6 +39,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Force recompilation - timestamp
+const RECOMPILE = Date.now();
+
 export default function RootLayout({
   children,
 }: Readonly<{
