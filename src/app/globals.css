@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: #141414;
+  --color-surface: #1f1f1f;
+  --color-primary: #E50914;
+  --color-primary-hover: #f40612;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b3b3b3;
+  --color-text-muted: #808080;
+  --color-border: #333333;
+  --color-input: #2f2f2f;
+  --color-ring: #E50914;
+  --font-sans: var(--font-inter);
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background) !important;
+    color: var(--color-text-primary) !important;
+    font-family: var(--font-sans), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  html, body {
+    background-color: #141414 !important;
+    color: #ffffff !important;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar for carousel but keep functionality */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Gradient overlay for hero images */
+  .gradient-overlay {
+    background: linear-gradient(
+      to top,
+      rgba(20, 20, 20, 0.95) 0%,
+      rgba(20, 20, 20, 0.7) 30%,
+      transparent 100%
+    );
+  }
+
+  /* Cinematic poster ratio 2:3 */
+  .aspect-poster {
+    aspect-ratio: 2 / 3;
+  }
+}
